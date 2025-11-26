@@ -5,19 +5,16 @@
   <title>Monitoring Potensi Energi Terbarukan</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="style.css" />
-  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- App JS -->
   <script type="module" src="app.js" defer></script>
 </head>
 <body>
-  <!-- Header Elegan -->
   <header class="top-bar">
     <div class="header-content">
       <span class="header-icon">🌿</span>
       <div>
         <h1>Monitoring Potensi Energi Terbarukan</h1>
-        <p class="subtitle">Analisis Data Cuaca untuk Energi Terbarukan - ESP32 → Firebase</p>
+        <p class="subtitle">Data Cuaca Real-time - ESP32 → Firebase</p>
       </div>
     </div>
     <div class="live-indicator" id="live-indicator">
@@ -29,161 +26,119 @@
   <main class="container">
     <!-- Mobile Tab -->
     <div class="mobile-tab-group">
-      <button id="tab-realtime-mobile" class="tab-btn active">Realtime</button>
-      <button id="tab-recap-mobile" class="tab-btn">Rekap</button>
+      <button id="tab-realtime" class="tab-btn active">Realtime</button>
+      <button id="tab-recap" class="tab-btn">Rekap</button>
     </div>
 
-    <!-- Konten -->
+    <!-- Content -->
     <div class="content-wrapper">
-      <!-- REALTIME -->
+      <!-- REALTIME SECTION -->
       <section id="section-realtime" class="section active">
         <div class="status-banner" id="status-banner">
           <span class="spinner">⏳</span>
-          Menghubungkan ke Firebase... <span id="last-update">-</span>
+          Menghubungkan... <span id="last-update">-</span>
         </div>
 
-        <!-- KPI Overview -->
+        <!-- KPI Cards -->
         <div class="kpi-grid">
-          <div class="kpi-card wind-kpi">
+          <div class="kpi-card">
             <span class="kpi-icon">🌪️</span>
-            <div>
-              <h3>Potensi Turbin Angin</h3>
-              <p class="kpi-value" id="wind-potential">0 kWh/hari</p>
-            </div>
+            <h3>Turbin Angin</h3>
+            <p class="kpi-value" id="wind-potential">0 kWh</p>
           </div>
-          <div class="kpi-card solar-kpi">
+          <div class="kpi-card">
             <span class="kpi-icon">☀️</span>
-            <div>
-              <h3>Potensi Panel Surya</h3>
-              <p class="kpi-value" id="solar-potential">0 kWh/hari</p>
-            </div>
+            <h3>Panel Surya</h3>
+            <p class="kpi-value" id="solar-potential">0 kWh</p>
           </div>
-          <div class="kpi-card hydro-kpi">
+          <div class="kpi-card">
             <span class="kpi-icon">🌧️</span>
-            <div>
-              <h3>Potensi Hidro</h3>
-              <p class="kpi-value" id="hydro-potential">0 kWh/hari</p>
-            </div>
+            <h3>Hidro Potensi</h3>
+            <p class="kpi-value" id="hydro-potential">0 kWh</p>
           </div>
         </div>
 
         <!-- Sensor Cards -->
-        <div class="cards-grid">
-          <div class="sensor-card" data-type="angin">
-            <div class="card-header">
-              <span class="card-icon">🌪️</span>
-              <h3>Kecepatan Angin</h3>
+        <div class="cards">
+          <div class="card wind-card">
+            <h4>🌪️ Angin</h4>
+            <p class="value" id="card-wind">-</p>
+            <div class="progress">
+              <div class="progress-bar" id="wind-progress"></div>
             </div>
-            <div class="card-content">
-              <p class="value" id="card-wind">-</p>
-              <span class="unit">km/h</span>
-              <div class="trend" id="wind-trend">—</div>
-            </div>
-            <div class="progress-bar">
-              <div class="progress-fill" id="wind-progress"></div>
-              <small>Optimal: >15 km/h</small>
-            </div>
+            <small>km/h</small>
           </div>
-
-          <div class="sensor-card" data-type="hujan">
-            <div class="card-header">
-              <span class="card-icon">🌧️</span>
-              <h3>Curah Hujan</h3>
+          <div class="card rain-card">
+            <h4>🌧️ Hujan</h4>
+            <p class="value" id="card-rain">-</p>
+            <div class="progress">
+              <div class="progress-bar" id="rain-progress"></div>
             </div>
-            <div class="card-content">
-              <p class="value" id="card-rain">-</p>
-              <span class="unit">mm</span>
-              <div class="trend" id="rain-trend">—</div>
-            </div>
-            <div class="progress-bar">
-              <div class="progress-fill" id="rain-progress"></div>
-              <small>Potensi: >10 mm</small>
-            </div>
+            <small>mm</small>
           </div>
-
-          <div class="sensor-card" data-type="cahaya">
-            <div class="card-header">
-              <span class="card-icon">☀️</span>
-              <h3>Intensitas Cahaya</h3>
+          <div class="card light-card">
+            <h4>☀️ Cahaya</h4>
+            <p class="value" id="card-lux">-</p>
+            <div class="progress">
+              <div class="progress-bar" id="lux-progress"></div>
             </div>
-            <div class="card-content">
-              <p class="value" id="card-lux">-</p>
-              <span class="unit">lux</span>
-              <div class="trend" id="lux-trend">—</div>
-            </div>
-            <div class="progress-bar">
-              <div class="progress-fill" id="lux-progress"></div>
-              <small>Optimal: >1000 lux</small>
-            </div>
+            <small>lux</small>
           </div>
-
-          <div class="sensor-card time-card">
-            <div class="card-header">
-              <span class="card-icon">🕐</span>
-              <h3>Update Terakhir</h3>
-            </div>
-            <div class="card-content">
-              <p class="value" id="card-time">-</p>
-            </div>
+          <div class="card time-card">
+            <h4>🕐 Waktu</h4>
+            <p class="value" id="card-time">-</p>
           </div>
         </div>
 
-        <!-- Chart -->
-        <div class="chart-section">
-          <h2 class="section-title">Tren 24 Jam Terakhir</h2>
+        <div class="chart-container">
+          <h3>Tren Real-time</h3>
           <div class="chart-wrapper">
             <canvas id="chart-realtime"></canvas>
           </div>
         </div>
       </section>
 
-      <!-- REKAP - DENGAN PER MENIT -->
+      <!-- REKAP SECTION -->
       <section id="section-recap" class="section">
-        <div class="rekap-header">
-          <h2 class="section-title">Analisis Data Historis</h2>
-          <div class="rekap-controls">
-            <button class="tab-btn sub active" data-agg="minute">Per Menit</button>
-            <button class="tab-btn sub" data-agg="hour">Per Jam</button>
-            <button class="tab-btn sub" data-agg="day">Per Hari</button>
-            <button class="tab-btn sub" data-agg="month">Per Bulan</button>
-          </div>
+        <div class="rekap-controls">
+          <button class="agg-btn active" data-agg="minute">Per Menit</button>
+          <button class="agg-btn" data-agg="hour">Per Jam</button>
+          <button class="agg-btn" data-agg="day">Per Hari</button>
+          <button class="agg-btn" data-agg="month">Per Bulan</button>
         </div>
 
         <div class="toolbar">
           <span id="rekap-info">Memuat data...</span>
-          <button id="btn-download" class="btn-download">📥 Export CSV</button>
+          <button id="download-btn">📊 Export CSV</button>
         </div>
 
-        <div class="chart-section">
+        <div class="chart-container">
           <div class="chart-wrapper">
             <canvas id="chart-rekap"></canvas>
           </div>
         </div>
 
-        <div class="table-section">
+        <div class="table-container">
           <table>
             <thead>
               <tr>
                 <th>Waktu</th>
-                <th>Angin<br><small>km/h</small></th>
-                <th>Hujan<br><small>mm</small></th>
-                <th>Cahaya<br><small>lux</small></th>
-                <th>Potensi<br><small>kWh</small></th>
+                <th>Angin</th>
+                <th>Hujan</th>
+                <th>Cahaya</th>
               </tr>
             </thead>
-            <tbody id="rekap-tbody"></tbody>
+            <tbody id="rekap-table"></tbody>
           </table>
         </div>
       </section>
     </div>
   </main>
 
-  <!-- Loading Overlay -->
-  <div id="loading-overlay" class="loading-overlay">
-    <div class="loading-content">
-      <span class="spinner">⏳</span>
-      <p>Menginisialisasi Dashboard...</p>
-    </div>
+  <!-- Loading -->
+  <div id="loading" class="loading">
+    <div class="spinner">⏳</div>
+    <p>Memuat Dashboard...</p>
   </div>
 </body>
 </html>
