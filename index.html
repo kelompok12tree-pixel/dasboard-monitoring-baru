@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>Monitoring Potensi Energi Terbarukan</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="style.css" />
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Font Awesome untuk ikon -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- App JS -->
+  <script type="module" src="app.js" defer></script>
+</head>
+<body>
+  <!-- Header dengan Ikon Energi -->
+  <header class="top-bar">
+    <div class="header-content">
+      <i class="fas fa-leaf header-icon"></i>
+      <div>
+        <h1>Monitoring Potensi Energi Terbarukan</h1>
+        <p class="subtitle">Data Cuaca untuk Potensi Angin, Surya, dan Hidro - ESP32 → Firebase</p>
+      </div>
+    </div>
+    <div class="live-indicator">
+      <span class="live-dot"></span>
+      <span>Live</span>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Sidebar Navigasi (Desktop) + Tab Mobile -->
+    <nav class="sidebar">
+      <button id="tab-realtime" class="nav-btn active">
+        <i class="fas fa-tachometer-alt"></i>
+        <span>Dashboard Realtime</span>
+      </button>
+      <button id="tab-recap" class="nav-btn">
+        <i class="fas fa-chart-line"></i>
+        <span>Rekap Data</span>
+      </button>
+    </nav>
+
+    <!-- Mobile Tab (Hidden di desktop) -->
+    <div class="mobile-tab-group">
+      <button id="tab-realtime-mobile" class="tab-btn active">Realtime</button>
+      <button id="tab-recap-mobile" class="tab-btn">Rekap</button>
+    </div>
+
+    <!-- Konten Utama -->
+    <div class="content-wrapper">
+      <!-- REALTIME DASHBOARD -->
+      <section id="section-realtime" class="section active">
+        <div class="status-banner" id="status-banner">
+          <i class="fas fa-sync-alt spinner"></i>
+          Menghubungkan ke Firebase... Terakhir update: <span id="last-update">-</span>
+        </div>
+
+        <!-- KPI Overview -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <i class="fas fa-wind kpi-icon"></i>
+            <div>
+              <h3>Potensi Turbin Angin</h3>
+              <p class="kpi-value" id="wind-potential">-</p>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <i class="fas fa-solar-panel kpi-icon"></i>
+            <div>
+              <h3>Potensi Panel Surya</h3>
+              <p class="kpi-value" id="solar-potential">-</p>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <i class="fas fa-cloud-rain kpi-icon"></i>
+            <div>
+              <h3>Potensi Hidro</h3>
+              <p class="kpi-value" id="hydro-potential">-</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sensor Cards dengan Ikon -->
+        <div class="cards-grid">
+          <div class="sensor-card wind-card" data-type="angin">
+            <div class="card-header">
+              <i class="fas fa-wind card-icon"></i>
+              <h3>Kecepatan Angin</h3>
+            </div>
+            <div class="card-content">
+              <p class="value" id="card-wind">-</p>
+              <span class="unit">km/h</span>
+              <div class="trend-indicator" id="wind-trend">
+                <i class="fas fa-arrow-up"></i>
+                <span>+0%</span>
+              </div>
+            </div>
+            <div class="card-footer">
+              <div class="progress-bar">
+                <div class="progress-fill" id="wind-progress"></div>
+              </div>
+              <small>Optimal: >15 km/h</small>
+            </div>
+          </div>
+
+          <div class="sensor-card rain-card" data-type="hujan">
+            <div class="card-header">
+              <i class="fas fa-cloud-rain card-icon"></i>
+              <h3>Curah Hujan Harian</h3>
+            </div>
+            <div class="card-content">
+              <p class="value" id="card-rain">-</p>
+              <span class="unit">mm</span>
+              <div class="trend-indicator" id="rain-trend">
+                <i class="fas fa-arrow-down"></i>
+                <span>-0%</span>
+              </div>
+            </div>
+            <div class="card-footer">
+              <div class="progress-bar">
+                <div class="progress-fill" id="rain-progress"></div>
+              </div>
+              <small>Potensi Hidro: >10 mm</small>
+            </div>
+          </div>
+
+          <div class="sensor-card light-card" data-type="cahaya">
+            <div class="card-header">
+              <i class="fas fa-sun card-icon"></i>
+              <h3>Intensitas Cahaya</h3>
+            </div>
+            <div class="card-content">
+              <p class="value" id="card-lux">-</p>
+              <span class="unit">lux</span>
+              <div class="trend-indicator" id="lux-trend">
+                <i class="fas fa-arrow-up"></i>
+                <span>+0%</span>
+              </div>
+            </div>
+            <div class="card-footer">
+              <div class="progress-bar">
+                <div class="progress-fill" id="lux-progress"></div>
+              </div>
+              <small>Optimal Surya: >1000 lux</small>
+            </div>
+          </div>
+
+          <div class="sensor-card time-card" data-type="waktu">
+            <div class="card-header">
+              <i class="fas fa-clock card-icon"></i>
+              <h3>Timestamp</h3>
+            </div>
+            <div class="card-content">
+              <p class="value" id="card-time">-</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chart dengan Judul Informatif -->
+        <div class="chart-section">
+          <div class="chart-header">
+            <h2 class="section-title">
+              <i class="fas fa-chart-line"></i>
+              Tren 24 Jam Terakhir - Potensi Energi
+            </h2>
+            <div class="chart-controls">
+              <button class="control-btn" id="zoom-in"><i class="fas fa-search-plus"></i></button>
+              <button class="control-btn" id="zoom-out"><i class="fas fa-search-minus"></i></button>
+            </div>
+          </div>
+          <div class="chart-wrapper">
+            anvas id="chart-realtime"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- REKAP DATA -->
+      <section id="section-recap" class="section">
+        <div class="chart-section">
+          <div class="chart-header">
+            <h2 class="section-title">
+              <i class="fas fa-history"></i>
+              Rekap Data Historis - Analisis Potensi
+            </h2>
+            <div class="date-range">
+              <input type="date" id="date-start" />
+              <span>→</span>
+              <input type="date" id="date-end" />
+              <button id="apply-date" class="control-btn"><i class="fas fa-filter"></i></button>
+            </div>
+          </div>
+
+          <div class="rekap-tabs">
+            <button class="tab-btn sub active" data-agg="minute">Per Menit</button>
+            <button class="tab-btn sub" data-agg="hour">Per Jam</button>
+            <button class="tab-btn sub" data-agg="day">Per Hari</button>
+            <button class="tab-btn sub" data-agg="month">Per Bulan</button>
+          </div>
+
+          <div class="toolbar">
+            <span id="rekap-info">Memuat data... <i class="fas fa-spinner spinner"></i></span>
+            <div class="export-group">
+              <button id="btn-download-csv" class="btn-export" title="Download CSV">
+                <i class="fas fa-file-csv"></i> CSV
+              </button>
+              <button id="btn-download-pdf" class="btn-export" title="Download PDF">
+                <i class="fas fa-file-pdf"></i> PDF
+              </button>
+              <button id="btn-screenshot" class="btn-export" title="Screenshot">
+                <i class="fas fa-camera"></i> Shot
+              </button>
+            </div>
+          </div>
+
+          <div class="chart-wrapper">
+            anvas id="chart-rekap"></canvas>
+          </div>
+
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Waktu</th>
+                  <th>Angin (km/h)</th>
+                  <th>Hujan (mm)</th>
+                  <th>Cahaya (lux)</th>
+                  <th>Potensi (kWh)</th>
+                </tr>
+              </thead>
+              <tbody id="rekap-tbody">
+                <!-- Diisi JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Loading Overlay -->
+  <div id="loading-overlay" class="loading-overlay">
+    <div class="loading-spinner">
+      <i class="fas fa-leaf"></i>
+      <p>Menginisialisasi Dashboard...</p>
+    </div>
+  </div>
+</body>
+</html>
