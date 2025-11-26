@@ -11,13 +11,13 @@
   <script type="module" src="app.js" defer></script>
 </head>
 <body>
-  <!-- Header Sederhana -->
+  <!-- Header Elegan -->
   <header class="top-bar">
     <div class="header-content">
       <span class="header-icon">🌿</span>
       <div>
         <h1>Monitoring Potensi Energi Terbarukan</h1>
-        <p class="subtitle">Data Cuaca untuk Potensi Angin, Surya, dan Hidro</p>
+        <p class="subtitle">Analisis Data Cuaca untuk Energi Terbarukan - ESP32 → Firebase</p>
       </div>
     </div>
     <div class="live-indicator" id="live-indicator">
@@ -44,21 +44,21 @@
 
         <!-- KPI Overview -->
         <div class="kpi-grid">
-          <div class="kpi-card">
+          <div class="kpi-card wind-kpi">
             <span class="kpi-icon">🌪️</span>
             <div>
               <h3>Potensi Turbin Angin</h3>
               <p class="kpi-value" id="wind-potential">0 kWh/hari</p>
             </div>
           </div>
-          <div class="kpi-card">
+          <div class="kpi-card solar-kpi">
             <span class="kpi-icon">☀️</span>
             <div>
               <h3>Potensi Panel Surya</h3>
               <p class="kpi-value" id="solar-potential">0 kWh/hari</p>
             </div>
           </div>
-          <div class="kpi-card">
+          <div class="kpi-card hydro-kpi">
             <span class="kpi-icon">🌧️</span>
             <div>
               <h3>Potensi Hidro</h3>
@@ -81,6 +81,7 @@
             </div>
             <div class="progress-bar">
               <div class="progress-fill" id="wind-progress"></div>
+              <small>Optimal: >15 km/h</small>
             </div>
           </div>
 
@@ -96,6 +97,7 @@
             </div>
             <div class="progress-bar">
               <div class="progress-fill" id="rain-progress"></div>
+              <small>Potensi: >10 mm</small>
             </div>
           </div>
 
@@ -111,6 +113,7 @@
             </div>
             <div class="progress-bar">
               <div class="progress-fill" id="lux-progress"></div>
+              <small>Optimal: >1000 lux</small>
             </div>
           </div>
 
@@ -129,17 +132,18 @@
         <div class="chart-section">
           <h2 class="section-title">Tren 24 Jam Terakhir</h2>
           <div class="chart-wrapper">
-            anvas id="chart-realtime"></canvas>
+            <canvas id="chart-realtime"></canvas>
           </div>
         </div>
       </section>
 
-      <!-- REKAP -->
+      <!-- REKAP - DENGAN PER MENIT -->
       <section id="section-recap" class="section">
         <div class="rekap-header">
-          <h2 class="section-title">Rekap Data Historis</h2>
+          <h2 class="section-title">Analisis Data Historis</h2>
           <div class="rekap-controls">
-            <button class="tab-btn sub active" data-agg="hour">Per Jam</button>
+            <button class="tab-btn sub active" data-agg="minute">Per Menit</button>
+            <button class="tab-btn sub" data-agg="hour">Per Jam</button>
             <button class="tab-btn sub" data-agg="day">Per Hari</button>
             <button class="tab-btn sub" data-agg="month">Per Bulan</button>
           </div>
@@ -147,7 +151,7 @@
 
         <div class="toolbar">
           <span id="rekap-info">Memuat data...</span>
-          <button id="btn-download" class="btn-download">📥 Download CSV</button>
+          <button id="btn-download" class="btn-download">📥 Export CSV</button>
         </div>
 
         <div class="chart-section">
@@ -161,9 +165,10 @@
             <thead>
               <tr>
                 <th>Waktu</th>
-                <th>Angin (km/h)</th>
-                <th>Hujan (mm)</th>
-                <th>Cahaya (lux)</th>
+                <th>Angin<br><small>km/h</small></th>
+                <th>Hujan<br><small>mm</small></th>
+                <th>Cahaya<br><small>lux</small></th>
+                <th>Potensi<br><small>kWh</small></th>
               </tr>
             </thead>
             <tbody id="rekap-tbody"></tbody>
@@ -177,7 +182,7 @@
   <div id="loading-overlay" class="loading-overlay">
     <div class="loading-content">
       <span class="spinner">⏳</span>
-      <p>Menginisialisasi Dashboard Energi...</p>
+      <p>Menginisialisasi Dashboard...</p>
     </div>
   </div>
 </body>
