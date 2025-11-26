@@ -1,14 +1,21 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Monitoring Potensi Energi Terbarukan</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Monitoring Potensi Energi Terbarukan - FIXED</title>
+  <!-- CDN libs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    /* Embedded style (kept from original - small cleanup) */
+:root{--primary:#0f0f0f;--secondary:#1a1a1a;--accent:#10b981;--gold:#d4af37;--text:#f1f5f9;--text-muted:#9ca3af;--border:rgba(16,185,129,0.2);--shadow:rgba(16,185,129,0.3);--gradient:linear-gradient(135deg,#10b981,#059669)}*{box-sizing:border-box;margin:0;padding:0}body{font-family:system-ui,-apple-system,sans-serif;background:var(--primary);color:var(--text);line-height:1.6}header.top-bar{padding:16px 24px;background:var(--secondary);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100;backdrop-filter:blur(10px)}.header-content{display:flex;align-items:center;gap:12px}.header-icon{font-size:24px;background:var(--gradient);padding:8px;border-radius:12px;color:white}.subtitle{font-size:12px;color:var(--text-muted)}.live-indicator{display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--gradient);border-radius:20px;color:white;font-size:12px}.live-dot{width:8px;height:8px;background:white;border-radius:50%;animation:blink 1.5s infinite}@keyframes blink{0%,50%{opacity:1}51%,100%{opacity:0.3}}.container{max-width:1200px;margin:0 auto;padding:20px}.nav-tabs{display:flex;gap:8px;margin-bottom:24px;justify-content:center}.nav-tab{padding:12px 20px;border:1px solid var(--border);background:var(--secondary);color:var(--text-muted);border-radius:8px;cursor:pointer;transition:all 0.3s;font-weight:500}.nav-tab.active{background:var(--gradient);color:white;border-color:var(--accent)}.section{display:none}.section.active{display:block}.status-banner{display:flex;align-items:center;gap:8px;padding:12px 16px;background:rgba(16,185,129,0.06);border:1px solid var(--border);border-radius:8px;margin-bottom:20px;color:var(--text);font-size:14px}.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;margin-bottom:24px}.kpi-card{background:var(--secondary);border:1px solid var(--border);border-radius:12px;padding:20px;display:flex;gap:12px;align-items:center;transition:all .3s}.kpi-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px var(--shadow)}.kpi-card h3{font-size:13px;color:var(--text-muted);margin-bottom:4px}.kpi-value{font-size:24px;font-weight:600;color:var(--text);margin:0}.metrics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}.metric-card{background:var(--secondary);border:1px solid var(--border);border-radius:12px;padding:20px;transition:all .3s}.metric-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}.metric-icon{font-size:20px}.metric-value{display:flex;align-items:baseline;gap:6px;margin-bottom:8px}.metric-value .value{font-size:28px;font-weight:600;color:var(--text)}.trend{font-size:12px;color:var(--text-muted)}.chart-container{background:var(--secondary);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px}.chart-title{font-size:18px;font-weight:600;color:var(--text);margin-bottom:16px;text-align:center}.chart-wrapper{height:350px;position:relative}.history-controls{display:grid;grid-template-columns:1fr 2fr;gap:16px;margin-bottom:20px}.date-selector{display:flex;gap:8px;align-items:center}.date-selector input{padding:8px;border:1px solid var(--border);background:var(--secondary);color:var(--text);border-radius:6px}.btn-filter{padding:8px 16px;background:var(--accent);color:white;border:none;border-radius:6px;cursor:pointer}.agg-selector{display:flex;gap:8px;justify-content:flex-end}.agg-btn{padding:8px 16px;border:1px solid var(--border);background:transparent;color:var(--text-muted);border-radius:6px;cursor:pointer;transition:all .3s}.agg-btn.active{background:var(--gradient);color:white;border-color:var(--accent)}.history-toolbar{display:flex;justify-content:space-between;align-items:center;padding:16px;background:var(--secondary);border-radius:8px;margin-bottom:20px;border:1px solid var(--border)}.info-text{color:var(--text-muted);font-size:14px}.export-buttons{display:flex;gap:8px}.export-btn{padding:8px 12px;background:var(--accent);color:white;border:none;border-radius:6px;cursor:pointer;font-size:12px}.export-btn:hover{background:#059669}.history-table{background:var(--secondary);border-radius:12px;border:1px solid var(--border);overflow:hidden}.table-container{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:13px}thead{background:rgba(255,255,255,0.05)}th,td{padding:12px;text-align:left;border-bottom:1px solid var(--border);color:var(--text)}th{font-weight:600;position:sticky;top:0;z-index:10}tbody tr:hover{background:rgba(16,185,129,0.1)}tbody tr:nth-child(even){background:rgba(255,255,255,0.02)}.loading-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,15,15,0.9);display:flex;justify-content:center;align-items:center;z-index:1000;opacity:1;transition:opacity .3s}.loading-overlay.hidden{opacity:0;pointer-events:none}.loading-content{text-align:center;background:var(--secondary);padding:40px;border-radius:12px;border:1px solid var(--border)}.loading-spinner{font-size:48px;animation:spin 1s linear infinite;margin-bottom:16px;color:var(--accent)}@keyframes spin{to{transform:rotate(360deg)}}.loading-text{font-size:16px;color:var(--text)}@media (max-width:768px){.container{padding:16px}.history-controls{grid-template-columns:1fr;gap:12px}.export-buttons{justify-content:center}.metrics-grid{grid-template-columns:1fr}.chart-wrapper{height:300px}table{font-size:12px}}  
+  </style>
 </head>
 <body>
-  <!-- Header -->
   <header class="top-bar">
     <div class="header-content">
       <span class="header-icon">🌿</span>
@@ -24,109 +31,64 @@
   </header>
 
   <main class="container">
-    <!-- Navigation Tabs -->
     <div class="nav-tabs">
       <button id="tab-realtime" class="nav-tab active">Dashboard Live</button>
       <button id="tab-history" class="nav-tab">Analisis Historis</button>
     </div>
 
-    <!-- Real-time Dashboard -->
     <section id="section-realtime" class="section active">
       <div class="status-banner" id="status-banner">
         <span class="spinner">⏳</span>
-        Menghubungkan ke Firebase... <span id="last-update">-</span>
+        <span id="status-text">Menghubungkan ke Firebase...</span>
+        <span id="last-update">-</span>
       </div>
 
-      <!-- KPI Overview -->
       <div class="kpi-grid">
-        <div class="kpi-card wind-kpi">
-          <span class="kpi-icon">🌪️</span>
-          <div>
-            <h3>Potensi Turbin Angin</h3>
-            <p class="kpi-value" id="wind-kpi">0 kWh/hari</p>
-          </div>
+        <div class="kpi-card wind-kpi"><span class="kpi-icon">🌪️</span>
+          <div><h3>Potensi Turbin Angin</h3><p class="kpi-value" id="wind-kpi">0 kWh/hari</p></div>
         </div>
-        <div class="kpi-card solar-kpi">
-          <span class="kpi-icon">☀️</span>
-          <div>
-            <h3>Potensi Panel Surya</h3>
-            <p class="kpi-value" id="solar-kpi">0 kWh/hari</p>
-          </div>
+        <div class="kpi-card solar-kpi"><span class="kpi-icon">☀️</span>
+          <div><h3>Potensi Panel Surya</h3><p class="kpi-value" id="solar-kpi">0 kWh/hari</p></div>
         </div>
-        <div class="kpi-card hydro-kpi">
-          <span class="kpi-icon">🌧️</span>
-          <div>
-            <h3>Potensi Hidro</h3>
-            <p class="kpi-value" id="hydro-kpi">0 kWh/hari</p>
-          </div>
+        <div class="kpi-card hydro-kpi"><span class="kpi-icon">🌧️</span>
+          <div><h3>Potensi Hidro</h3><p class="kpi-value" id="hydro-kpi">0 kWh/hari</p></div>
         </div>
       </div>
 
-      <!-- Sensor Metrics -->
       <div class="metrics-grid">
         <div class="metric-card wind-metric">
-          <div class="metric-header">
-            <span class="metric-icon">🌪️</span>
-            <h4>Kecepatan Angin</h4>
-          </div>
-          <div class="metric-value">
-            <span class="value primary" id="wind-value">-</span>
-            <span class="unit">km/h</span>
-          </div>
+          <div class="metric-header"><span class="metric-icon">🌪️</span><h4>Kecepatan Angin</h4></div>
+          <div class="metric-value"><span class="value primary" id="wind-value">-</span><span class="unit">km/h</span></div>
           <div class="trend" id="wind-trend">-</div>
         </div>
-
         <div class="metric-card rain-metric">
-          <div class="metric-header">
-            <span class="metric-icon">🌧️</span>
-            <h4>Curah Hujan</h4>
-          </div>
-          <div class="metric-value">
-            <span class="value primary" id="rain-value">-</span>
-            <span class="unit">mm</span>
-          </div>
+          <div class="metric-header"><span class="metric-icon">🌧️</span><h4>Curah Hujan</h4></div>
+          <div class="metric-value"><span class="value primary" id="rain-value">-</span><span class="unit">mm</span></div>
           <div class="trend" id="rain-trend">-</div>
         </div>
-
         <div class="metric-card light-metric">
-          <div class="metric-header">
-            <span class="metric-icon">☀️</span>
-            <h4>Intensitas Cahaya</h4>
-          </div>
-          <div class="metric-value">
-            <span class="value primary" id="light-value">-</span>
-            <span class="unit">lux</span>
-          </div>
+          <div class="metric-header"><span class="metric-icon">☀️</span><h4>Intensitas Cahaya</h4></div>
+          <div class="metric-value"><span class="value primary" id="light-value">-</span><span class="unit">lux</span></div>
           <div class="trend" id="light-trend">-</div>
         </div>
-
         <div class="metric-card time-metric">
-          <div class="metric-header">
-            <span class="metric-icon">🕐</span>
-            <h4>Timestamp</h4>
-          </div>
-          <div class="metric-value">
-            <span id="timestamp-value">-</span>
-          </div>
+          <div class="metric-header"><span class="metric-icon">🕐</span><h4>Timestamp</h4></div>
+          <div class="metric-value"><span id="timestamp-value">-</span></div>
         </div>
       </div>
 
-      <!-- Real-time Chart -->
       <div class="chart-container">
-        <h3 class="chart-title">Tren Data Real-time (24 Jam Terakhir)</h3>
-        <div class="chart-wrapper">
-          nvas id="chart-reealtime"></canvas>
-        </div>
+        <h3 class="chart-title">Tren Data Real-time (terakhir)</h3>
+        <div class="chart-wrapper"><canvas id="chart-realtime"></canvas></div>
       </div>
     </section>
 
-    <!-- History Section -->
     <section id="section-history" class="section">
       <div class="history-controls">
         <div class="date-selector">
-          <input type="date" id="date-start" value="">
+          <input type="date" id="date-start" />
           <span class="date-separator">→</span>
-          <input type="date" id="date-end" value="">
+          <input type="date" id="date-end" />
           <button id="filter-date" class="btn-filter">Filter</button>
         </div>
         <div class="agg-selector">
@@ -146,15 +108,11 @@
         </div>
       </div>
 
-      <!-- History Chart -->
       <div class="chart-container">
         <h3 class="chart-title">Analisis Historis</h3>
-        <div class="chart-wrapper">
-          nvas id="chart-historyy"></canvas>
-        </div>
+        <div class="chart-wrapper"><canvas id="chart-history"></canvas></div>
       </div>
 
-      <!-- History Table -->
       <div class="history-table">
         <div class="table-container">
           <table>
@@ -174,12 +132,348 @@
     </section>
   </main>
 
-  <!-- Loading Overlay -->
   <div id="loading-overlay" class="loading-overlay">
     <div class="loading-content">
       <div class="loading-spinner">⏳</div>
       <p class="loading-text">Menginisialisasi Dashboard...</p>
     </div>
   </div>
+
+  <script>
+    // ---------- CONFIG ----------
+    const firebaseConfig = {
+      apiKey: "AIzaSyD-eCZun9Chghk2z0rdPrEuIKkMojrM5g0",
+      authDomain: "monitoring-ver-j.firebaseapp.com",
+      databaseURL: "https://monitoring-ver-j-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "monitoring-ver-j",
+      storageBucket: "monitoring-ver-j.firebasestorage.app",
+      messagingSenderId: "237639687534",
+      appId: "1:237639687534:web:4e61c13e6537455c34757f"
+    };
+
+    // DOM refs
+    const refs = {
+      statusBanner: document.getElementById('status-banner'),
+      statusText: document.getElementById('status-text'),
+      lastUpdate: document.getElementById('last-update'),
+      liveIndicator: document.getElementById('live-indicator'),
+      windValue: document.getElementById('wind-value'),
+      rainValue: document.getElementById('rain-value'),
+      lightValue: document.getElementById('light-value'),
+      timestampValue: document.getElementById('timestamp-value'),
+      windKpi: document.getElementById('wind-kpi'),
+      solarKpi: document.getElementById('solar-kpi'),
+      hydroKpi: document.getElementById('hydro-kpi'),
+      windTrend: document.getElementById('wind-trend'),
+      rainTrend: document.getElementById('rain-trend'),
+      lightTrend: document.getElementById('light-trend'),
+      historyInfo: document.getElementById('history-info'),
+      historyTbody: document.getElementById('history-tbody'),
+      dateStart: document.getElementById('date-start'),
+      dateEnd: document.getElementById('date-end'),
+      filterBtn: document.getElementById('filter-date'),
+      aggBtns: document.querySelectorAll('.agg-btn'),
+      btnCsv: document.getElementById('btn-csv'),
+      btnPdf: document.getElementById('btn-pdf'),
+      btnScreenshot: document.getElementById('btn-screenshot')
+    };
+
+    let app, db;
+    let allData = [];
+    let filteredData = [];
+    let previousValues = {wind:0, rain:0, light:0};
+    let realtimeChart, historyChart;
+    let currentAgg = 'minute';
+
+    // ---------- INITIALIZE ----------
+    document.addEventListener('DOMContentLoaded', init);
+
+    function init(){
+      console.log('Init dashboard');
+      setupUI();
+      initCharts();
+      setupDatePicker();
+      bindEvents();
+
+      try{
+        app = firebase.initializeApp(firebaseConfig);
+        db = firebase.database();
+        updateStatus('✅ Firebase initialized', 'success');
+        startRealtimeListener();
+        startHistoryListener();
+      }catch(err){
+        console.error('Firebase init error',err);
+        updateStatus('❌ Firebase unavailable: '+(err.message||err), 'error');
+        hideLoaderAfter(2000);
+      }
+    }
+
+    function setupUI(){
+      // Tabs
+      const tRealtime = document.getElementById('tab-realtime');
+      const tHistory = document.getElementById('tab-history');
+      tRealtime.addEventListener('click', ()=>switchSection('realtime'));
+      tHistory.addEventListener('click', ()=>switchSection('history'));
+    }
+
+    function bindEvents(){
+      refs.filterBtn.addEventListener('click', applyDateFilter);
+      refs.aggBtns.forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          refs.aggBtns.forEach(b=>b.classList.remove('active'));
+          btn.classList.add('active');
+          currentAgg = btn.dataset.agg;
+          updateHistoryView();
+        });
+      });
+      refs.btnCsv.addEventListener('click', ()=>exportCSV(filteredData,currentAgg));
+      refs.btnPdf.addEventListener('click', ()=>exportPDF(filteredData,currentAgg));
+      refs.btnScreenshot.addEventListener('click', takeScreenshot);
+    }
+
+    function hideLoaderAfter(ms=500){
+      setTimeout(()=>{
+        document.getElementById('loading-overlay')?.classList.add('hidden');
+      }, ms);
+    }
+
+    function updateStatus(msg,type='info'){
+      refs.statusText.textContent = msg;
+      const icon = type==='success'? '✅' : type==='error'? '❌' : type==='warning'? '⚠️' : '⏳';
+      refs.statusBanner.innerHTML = `<span class=\"spinner\">${icon}</span> <span id=\"status-text\">${msg}</span> <span id=\"last-update\">${refs.lastUpdate.textContent||''}</span>`;
+    }
+
+    function updateLiveIndicator(connected){
+      const el = document.getElementById('live-indicator');
+      if(!el) return;
+      el.querySelector('span:last-child').textContent = connected? 'Live' : 'Offline';
+      el.style.background = connected? 'var(--gradient)' : '#ef4444';
+    }
+
+    // ---------- CHARTS ----------
+    function initCharts(){
+      // realtime
+      const rCtx = document.getElementById('chart-realtime')?.getContext('2d');
+      if(rCtx){
+        realtimeChart = new Chart(rCtx,{
+          type:'line',
+          data:{labels:[], datasets:[{label:'Angin (km/h)', data:[], borderColor:'#10b981', tension:0.4, borderWidth:2, fill:true, pointRadius:3},{label:'Hujan (mm)', data:[], borderColor:'#f59e0b', tension:0.4, borderWidth:2, yAxisID:'y1'},{label:'Cahaya (lux/100)', data:[], borderColor:'#d4af37', tension:0.4, borderWidth:2, yAxisID:'y2'}]},
+          options:{responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{color:'#f1f5f9'},grid:{color:'rgba(255,255,255,0.05)'}},y:{ticks:{color:'#f1f5f9'},grid:{color:'rgba(255,255,255,0.05)'}},y1:{type:'linear',position:'right',grid:{drawOnChartArea:false}},y2:{type:'linear',position:'right',grid:{drawOnChartArea:false}}},plugins:{legend:{labels:{color:'#f1f5f9'}}}}
+        });
+      }
+
+      // history
+      const hCtx = document.getElementById('chart-history')?.getContext('2d');
+      if(hCtx){
+        historyChart = new Chart(hCtx,{
+          type:'bar',
+          data:{labels:[], datasets:[{label:'Angin (km/h)', data:[], backgroundColor:'rgba(16,185,129,0.6)', borderColor:'#10b981', borderWidth:1},{label:'Hujan (mm)', data:[], backgroundColor:'rgba(245,158,11,0.6)', borderColor:'#f59e0b', borderWidth:1},{label:'Cahaya (lux)', data:[], backgroundColor:'rgba(212,175,55,0.6)', borderColor:'#d4af37', borderWidth:1}]},
+          options:{responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{color:'#f1f5f9'}},y:{ticks:{color:'#f1f5f9'}}},plugins:{legend:{labels:{color:'#f1f5f9'}}}}
+        });
+      }
+    }
+
+    function addRealtimePoint(label, wind, rain, light){
+      if(!realtimeChart) return;
+      const maxPoints = 24;
+      realtimeChart.data.labels.push(label);
+      realtimeChart.data.datasets[0].data.push(wind);
+      realtimeChart.data.datasets[1].data.push(rain);
+      realtimeChart.data.datasets[2].data.push(light/100);
+      if(realtimeChart.data.labels.length>maxPoints){
+        realtimeChart.data.labels.shift();
+        realtimeChart.data.datasets.forEach(ds=>ds.data.shift());
+      }
+      realtimeChart.update('none');
+    }
+
+    function updateHistoryChart(aggregated){
+      if(!historyChart) return;
+      const labels = aggregated.map(d=>d.timeStr);
+      historyChart.data.labels = labels;
+      historyChart.data.datasets[0].data = aggregated.map(d=>d.wind);
+      historyChart.data.datasets[1].data = aggregated.map(d=>d.rain);
+      historyChart.data.datasets[2].data = aggregated.map(d=>d.light);
+      historyChart.update();
+    }
+
+    // ---------- FIREBASE LISTENERS ----------
+    function startRealtimeListener(){
+      const ref = db.ref('/weather/keadaan_sekarang');
+      ref.on('value', snap=>{
+        const data = snap.val();
+        if(!data){ updateStatus('No realtime data','warning'); hideLoaderAfter(800); return; }
+        const timestamp = data.waktu || new Date().toLocaleString('id-ID');
+        const wind = Number(data.anemometer || 0);
+        const rain = Number(data.rain_gauge || 0);
+        const light = Number(data.sensor_cahaya || 0);
+        updateRealtimeMetrics(wind,rain,light,timestamp);
+        addRealtimePoint(timestamp,wind,rain,light);
+        updateStatus('✅ Connected - Last update: '+timestamp,'success');
+        refs.lastUpdate.textContent = timestamp;
+        updateLiveIndicator(true);
+        previousValues = {wind, rain, light};
+        hideLoaderAfter(400);
+      }, err=>{
+        console.error('Realtime listener error',err);
+        updateStatus('❌ Realtime error: '+(err.message||err),'error');
+        updateLiveIndicator(false);
+        hideLoaderAfter(1000);
+      });
+    }
+
+    function startHistoryListener(){
+      const ref = db.ref('/weather/histori');
+      ref.on('value', snap=>{
+        const raw = snap.val();
+        allData = [];
+        if(raw){
+          Object.keys(raw).forEach(k=>{
+            const r = raw[k];
+            if(r && r.waktu){
+              const date = parseDate(r.waktu);
+              if(date){
+                allData.push({timestamp:date, timeStr:r.waktu, wind:Number(r.anemometer||0), rain:Number(r.rain_gauge||0), light:Number(r.sensor_cahaya||0)});
+              }
+            }
+          });
+          allData.sort((a,b)=>a.timestamp-b.timestamp);
+        }
+        filteredData = [...allData];
+        updateHistoryView();
+      }, err=>{
+        console.error('History listener error',err);
+        refs.historyInfo.textContent = 'Error loading history: '+(err.message||err);
+      });
+    }
+
+    // ---------- UI UPDATES ----------
+    function updateRealtimeMetrics(wind,rain,light,timestamp){
+      refs.windValue.textContent = wind.toFixed(2);
+      refs.rainValue.textContent = rain.toFixed(2);
+      refs.lightValue.textContent = Math.round(light).toString();
+      refs.timestampValue.textContent = timestamp;
+      const wp = calculateWindPotential(wind);
+      const sp = calculateSolarPotential(light);
+      const hp = calculateHydroPotential(rain);
+      refs.windKpi.textContent = wp.toFixed(2)+' kWh/hari';
+      refs.solarKpi.textContent = sp.toFixed(2)+' kWh/hari';
+      refs.hydroKpi.textContent = hp.toFixed(2)+' kWh/hari';
+      updateTrendDisplay(refs.windTrend, wind, previousValues.wind);
+      updateTrendDisplay(refs.rainTrend, rain, previousValues.rain);
+      updateTrendDisplay(refs.lightTrend, light, previousValues.light);
+    }
+
+    function updateTrendDisplay(el, current, previous){
+      if(!el || previous===0){ el.textContent='—'; return; }
+      const change = ((current-previous)/previous*100).toFixed(1);
+      const isPositive = Number(change) >= 0;
+      el.innerHTML = `<span class="${isPositive? 'trend-up':'trend-down'}">${isPositive? '↗️':'↘️'} ${isPositive? '+':''}${change}%</span>`;
+      el.style.color = isPositive? '#10b981' : '#ef4444';
+    }
+
+    // ---------- HISTORY VIEW & AGGREGATION ----------
+    function updateHistoryView(){
+      if(!filteredData || !filteredData.length){
+        refs.historyInfo.textContent = 'No historical data available';
+        refs.historyTbody.innerHTML = '<tr><td colspan="5" style="text-align:center">No data</td></tr>';
+        updateHistoryChart([]);
+        return;
+      }
+      const aggregated = aggregateData(filteredData, currentAgg);
+      refs.historyInfo.textContent = `Showing ${aggregated.length} points (${currentAgg})`;
+      refs.historyTbody.innerHTML = '';
+      aggregated.slice(-100).reverse().forEach(rec=>{
+        const potential = calculateTotalPotential(rec.wind, rec.rain, rec.light);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${rec.timeStr}</td><td>${rec.wind.toFixed(2)}</td><td>${rec.rain.toFixed(2)}</td><td>${rec.light.toFixed(0)}</td><td>${potential.toFixed(2)}</td>`;
+        refs.historyTbody.appendChild(tr);
+      });
+      updateHistoryChart(aggregated.slice(-50));
+    }
+
+    function aggregateData(data, mode){
+      const map=new Map();
+      data.forEach(item=>{
+        const d=item.timestamp;
+        let key, timeStr;
+        switch(mode){
+          case 'minute': key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; timeStr=key; break;
+          case 'hour': key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:00`; timeStr=key; break;
+          case 'day': key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; timeStr=key; break;
+          case 'month': key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; timeStr=key; break;
+          default: key = item.timestamp.getTime(); timeStr = item.timeStr;
+        }
+        if(!map.has(key)) map.set(key,{timeStr, wind:0, rain:0, light:0, count:0});
+        const b = map.get(key);
+        b.wind += item.wind; b.rain += item.rain; b.light += item.light; b.count++;
+      });
+      const out = Array.from(map.values()).map(b=>({timeStr:b.timeStr, wind:b.wind/b.count, rain:b.rain/b.count, light:b.light/b.count}));
+      out.sort((a,b)=> new Date(a.timeStr) - new Date(b.timeStr));
+      return out;
+    }
+
+    // ---------- EXPORTS ----------
+    function exportCSV(data, agg){
+      const aggData = aggregateData(data, agg);
+      if(!aggData.length){ alert('Tidak ada data untuk diekspor'); return; }
+      let csv = 'Waktu,Angin,Hujan,Cahaya,Potensi\n';
+      aggData.forEach(i=>{ const pot = calculateTotalPotential(i.wind,i.rain,i.light); csv += `"${i.timeStr}",${i.wind.toFixed(2)},${i.rain.toFixed(2)},${i.light.toFixed(0)},${pot.toFixed(2)}\n`; });
+      const blob = new Blob([csv], {type:'text/csv'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = `energi_${agg}_${new Date().toISOString().split('T')[0]}.csv`; a.click(); URL.revokeObjectURL(url);
+    }
+
+    async function exportPDF(data, agg){
+      const aggData = aggregateData(data, agg);
+      if(!aggData.length){ alert('Tidak ada data untuk diekspor'); return; }
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({orientation:'landscape'});
+      doc.setFontSize(12);
+      doc.text(`Rekap Energi (${agg}) - ${new Date().toLocaleDateString()}`, 10, 10);
+      const cols = ['Waktu','Angin','Hujan','Cahaya','Potensi'];
+      const rows = aggData.slice(0,200).map(i=>[i.timeStr, i.wind.toFixed(2), i.rain.toFixed(2), i.light.toFixed(0), calculateTotalPotential(i.wind,i.rain,i.light).toFixed(2)]);
+      // simple table
+      let startY = 20; const lineH=7; doc.setFontSize(9);
+      doc.text(cols.join(' | '), 10, startY);
+      startY += lineH;
+      rows.forEach(r=>{ doc.text(r.join(' | '), 10, startY); startY += lineH; if(startY>180){ doc.addPage(); startY=20; } });
+      doc.save(`energi_${agg}_${new Date().toISOString().split('T')[0]}.pdf`);
+    }
+
+    function takeScreenshot(){ html2canvas(document.body).then(canvas=>{ const url = canvas.toDataURL('image/png'); const a = document.createElement('a'); a.href = url; a.download = `dashboard_${new Date().toISOString().split('T')[0]}.png`; a.click(); }); }
+
+    // ---------- UTIL ----------
+    function parseDate(str){
+      try{
+        const [date,time] = str.split(' ');
+        const [y,m,d] = date.split('-').map(Number);
+        const [hh,mm,ss] = (time||'00:00:00').split(':').map(Number);
+        return new Date(y,m-1,d,hh,mm,ss||0);
+      }catch(e){ console.warn('parseDate failed',str); return new Date(str); }
+    }
+    function calculateWindPotential(w){ return Math.max(0, w*0.15); }
+    function calculateSolarPotential(l){ return Math.max(0, (l/1000)*0.2); }
+    function calculateHydroPotential(r){ return Math.max(0, r*0.3); }
+    function calculateTotalPotential(w,r,l){ return calculateWindPotential(w)+calculateSolarPotential(l)+calculateHydroPotential(r); }
+
+    function parseDateInput(v){ return v? new Date(v+'T00:00:00') : null; }
+
+    function applyDateFilter(){
+      const s = parseDateInput(refs.dateStart.value);
+      const e = parseDateInput(refs.dateEnd.value);
+      if(!s || !e){ filteredData = [...allData]; updateHistoryView(); return; }
+      filteredData = allData.filter(item=> item.timestamp >= s && item.timestamp <= new Date(e.getTime()+24*3600*1000-1));
+      updateHistoryView();
+    }
+
+    function setupDatePicker(){ const today=new Date(); const yesterday=new Date(today); yesterday.setDate(today.getDate()-1); refs.dateStart.valueAsDate = yesterday; refs.dateEnd.valueAsDate = today; }
+
+    // ---------- small helpers ----------
+    function switchSection(name){ document.getElementById('tab-realtime').classList.toggle('active', name==='realtime'); document.getElementById('tab-history').classList.toggle('active', name==='history'); document.getElementById('section-realtime').classList.toggle('active', name==='realtime'); document.getElementById('section-history').classList.toggle('active', name==='history'); if(name==='realtime') realtimeChart?.resize(); if(name==='history') historyChart?.resize(); }
+
+    // hide loader if nothing happened after 5s
+    setTimeout(()=>{ document.getElementById('loading-overlay')?.classList.add('hidden'); }, 5000);
+  </script>
 </body>
 </html>
