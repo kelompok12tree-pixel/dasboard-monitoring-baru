@@ -2,143 +2,221 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <title>Monitoring Potensi Energi Terbarukan</title>
+  <title>Monitoring Energi Terbarukan</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script type="module" src="app.js" defer></script>
-</head>
-<body>
-  <header class="top-bar">
-    <div class="header-content">
-      <span class="header-icon">🌿</span>
-      <div>
-        <h1>Monitoring Potensi Energi Terbarukan</h1>
-        <p class="subtitle">Data Cuaca Real-time - ESP32 → Firebase</p>
-      </div>
-    </div>
-    <div class="live-indicator" id="live-indicator">
-      <span class="live-dot"></span>
-      <span>Memuat...</span>
-    </div>
-  </header>
-
-  <main class="container">
-    <!-- Mobile Tab -->
-    <div class="mobile-tab-group">
-      <button id="tab-realtime" class="tab-btn active">Realtime</button>
-      <button id="tab-recap" class="tab-btn">Rekap</button>
-    </div>
-
-    <!-- Content -->
-    <div class="content-wrapper">
-      <!-- REALTIME SECTION -->
-      <section id="section-realtime" class="section active">
-        <div class="status-banner" id="status-banner">
-          <span class="spinner">⏳</span>
-          Menghubungkan... <span id="last-update">-</span>
-        </div>
-
-        <!-- KPI Cards -->
-        <div class="kpi-grid">
-          <div class="kpi-card">
-            <span class="kpi-icon">🌪️</span>
-            <h3>Turbin Angin</h3>
-            <p class="kpi-value" id="wind-potential">0 kWh</p>
-          </div>
-          <div class="kpi-card">
-            <span class="kpi-icon">☀️</span>
-            <h3>Panel Surya</h3>
-            <p class="kpi-value" id="solar-potential">0 kWh</p>
-          </div>
-          <div class="kpi-card">
-            <span class="kpi-icon">🌧️</span>
-            <h3>Hidro Potensi</h3>
-            <p class="kpi-value" id="hydro-potential">0 kWh</p>
-          </div>
-        </div>
-
-        <!-- Sensor Cards -->
-        <div class="cards">
-          <div class="card wind-card">
-            <h4>🌪️ Angin</h4>
-            <p class="value" id="card-wind">-</p>
-            <div class="progress">
-              <div class="progress-bar" id="wind-progress"></div>
-            </div>
-            <small>km/h</small>
-          </div>
-          <div class="card rain-card">
-            <h4>🌧️ Hujan</h4>
-            <p class="value" id="card-rain">-</p>
-            <div class="progress">
-              <div class="progress-bar" id="rain-progress"></div>
-            </div>
-            <small>mm</small>
-          </div>
-          <div class="card light-card">
-            <h4>☀️ Cahaya</h4>
-            <p class="value" id="card-lux">-</p>
-            <div class="progress">
-              <div class="progress-bar" id="lux-progress"></div>
-            </div>
-            <small>lux</small>
-          </div>
-          <div class="card time-card">
-            <h4>🕐 Waktu</h4>
-            <p class="value" id="card-time">-</p>
-          </div>
-        </div>
-
-        <div class="chart-container">
-          <h3>Tren Real-time</h3>
-          <div class="chart-wrapper">
-            <canvas id="chart-realtime"></canvas>
-          </div>
-        </div>
-      </section>
-
-      <!-- REKAP SECTION -->
-      <section id="section-recap" class="section">
-        <div class="rekap-controls">
-          <button class="agg-btn active" data-agg="minute">Per Menit</button>
-          <button class="agg-btn" data-agg="hour">Per Jam</button>
-          <button class="agg-btn" data-agg="day">Per Hari</button>
-          <button class="agg-btn" data-agg="month">Per Bulan</button>
-        </div>
-
-        <div class="toolbar">
-          <span id="rekap-info">Memuat data...</span>
-          <button id="download-btn">📊 Export CSV</button>
-        </div>
-
-        <div class="chart-container">
-          <div class="chart-wrapper">
-            <canvas id="chart-rekap"></canvas>
-          </div>
-        </div>
-
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Waktu</th>
-                <th>Angin</th>
-                <th>Hujan</th>
-                <th>Cahaya</th>
-              </tr>
-            </thead>
-            <tbody id="rekap-table"></tbody>
-          </table>
-        </div>
-      </section>
-    </div>
-  </main>
-
-  <!-- Loading -->
-  <div id="loading" class="loading">
-    <div class="spinner">⏳</div>
-    <p>Memuat Dashboard...</p>
-  </div>
-</body>
-</html>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script type="module">
+    // Firebase SDK - Inline untuk menghindari import error
+    (function() {
+      const script = document.createElement('script');
+      script.src = 'https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js';
+      script.onload = initDashboard;
+      document.head.appendChild(script);
+      
+      const dbScript = document.createElement('script');
+      dbScript.src = 'https://www.gstatic.com/firebasejs/10.14.0/firebase-database-compat.js';
+      document.head.appendChild(dbScript);
+      
+    })();
+    
+    function initDashboard() {
+      const { initializeApp } = window.firebase;
+      const { getDatabase, ref, onValue } = window.firebase.database;
+      
+      const config = {
+        apiKey: "AIzaSyD-eCZun9Chghk2z0rdPrEuIKkMojrM5g0",
+        authDomain: "monitoring-ver-j.firebaseapp.com",
+        databaseURL: "https://monitoring-ver-j-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "monitoring-ver-j"
+      };
+      
+      try {
+        const app = initializeApp(config);
+        const db = getDatabase(app);
+        console.log("✅ Firebase & Chart.js loaded");
+        
+        // DOM Elements
+        const realtimeSection = document.getElementById("section-realtime");
+        const recapSection = document.getElementById("section-recap");
+        const statusDiv = document.getElementById("status");
+        const liveIndicator = document.getElementById("live-indicator");
+        const windEl = document.getElementById("card-wind");
+        const rainEl = document.getElementById("card-rain");
+        const luxEl = document.getElementById("card-lux");
+        const timeEl = document.getElementById("card-time");
+        const kpiWind = document.getElementById("wind-potential");
+        const kpiSolar = document.getElementById("solar-potential");
+        const kpiHydro = document.getElementById("hydro-potential");
+        const recapInfo = document.getElementById("rekap-info");
+        const recapTbody = document.getElementById("rekap-tbody");
+        const btnDownload = document.getElementById("btn-download");
+        
+        let currentAgg = "minute";
+        let historyData = [];
+        let isConnected = false;
+        let chartRealtime;
+        let chartRecap;
+        
+        // Hide loading
+        document.getElementById("loading").style.display = "none";
+        statusDiv.innerHTML = "✅ Terhubung";
+        liveIndicator.innerHTML = '<span class="live-dot"></span> Live';
+        
+        // Realtime listener
+        const realtimeRef = ref(db, "/weather/keadaan_sekarang");
+        onValue(realtimeRef, (snap) => {
+          const data = snap.val();
+          console.log("📡 Data realtime:", data);
+          
+          if (data) {
+            const wind = Number(data.anemometer || 0);
+            const rain = Number(data.rain_gauge || 0);
+            const lux = Number(data.sensor_cahaya || 0);
+            const time = data.waktu || new Date().toLocaleString();
+            
+            // Update cards
+            if (windEl) windEl.textContent = wind.toFixed(2);
+            if (rainEl) rainEl.textContent = rain.toFixed(2);
+            if (luxEl) luxEl.textContent = lux.toFixed(0);
+            if (timeEl) timeEl.textContent = time;
+            
+            // Update KPI
+            if (kpiWind) kpiWind.textContent = (wind * 0.15).toFixed(1) + " kWh";
+            if (kpiSolar) kpiSolar.textContent = (lux / 1000 * 0.2).toFixed(1) + " kWh";
+            if (kpiHydro) kpiHydro.textContent = (rain * 0.3).toFixed(1) + " kWh";
+            
+            // Update progress bars
+            const windProgress = document.getElementById("wind-progress");
+            const rainProgress = document.getElementById("rain-progress");
+            const luxProgress = document.getElementById("lux-progress");
+            
+            if (windProgress) windProgress.style.width = Math.min(wind / 20 * 100, 100) + "%";
+            if (rainProgress) rainProgress.style.width = Math.min(rain / 50 * 100, 100) + "%";
+            if (luxProgress) luxProgress.style.width = Math.min(lux / 2000 * 100, 100) + "%";
+            
+            // Update chart
+            if (chartRealtime) {
+              const timeLabel = time.split(' ')[1] || new Date().toLocaleTimeString();
+              chartRealtime.data.labels.push(timeLabel);
+              chartRealtime.data.datasets[0].data.push(wind);
+              chartRealtime.data.datasets[1].data.push(rain);
+              chartRealtime.data.datasets[2].data.push(lux / 100);
+              
+              if (chartRealtime.data.labels.length > 24) {
+                chartRealtime.data.labels.shift();
+                chartRealtime.data.datasets.forEach(d => d.data.shift());
+              }
+              
+              chartRealtime.update();
+            }
+          }
+        });
+        
+        // History listener
+        const historyRef = ref(db, "/weather/histori");
+        onValue(historyRef, (snap) => {
+          historyData = [];
+          const data = snap.val();
+          
+          if (data) {
+            Object.keys(data).forEach(key => {
+              const row = data[key];
+              if (row && row.waktu) {
+                historyData.push({
+                  time: new Date(row.waktu),
+                  wind: Number(row.anemometer || 0),
+                  rain: Number(row.rain_gauge || 0),
+                  lux: Number(row.sensor_cahaya || 0)
+                });
+              }
+            });
+          }
+          
+          updateRecapView();
+        });
+        
+        // Charts
+        function initCharts() {
+          // Realtime chart
+          const realtimeCanvas = document.getElementById("chart-realtime");
+          if (realtimeCanvas) {
+            chartRealtime = new Chart(realtimeCanvas, {
+              type: 'line',
+              data: {
+                labels: [],
+                datasets: [
+                  {
+                    label: 'Angin (km/h)',
+                    data: [],
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    tension: 0.4,
+                  },
+                  {
+                    label: 'Hujan (mm)',
+                    data: [],
+                    borderColor: '#f59e0b',
+                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                    tension: 0.4,
+                    yAxisID: 'y1',
+                  },
+                  {
+                    label: 'Cahaya (lux/100)',
+                    data: [],
+                    borderColor: '#d4af37',
+                    backgroundColor: 'rgba(212, 175, 55, 0.1)',
+                    tension: 0.4,
+                    yAxisID: 'y2',
+                  }
+                ]
+              },
+              options: {
+                responsive: true,
+                scales: {
+                  x: { 
+                    ticks: { color: '#e5e7eb' },
+                    grid: { color: 'rgba(255,255,255,0.1)' }
+                  },
+                  y: {
+                    position: 'left',
+                    ticks: { color: '#e5e7eb' },
+                    grid: { color: 'rgba(255,255,255,0.1)' }
+                  },
+                  y1: {
+                    position: 'right',
+                    ticks: { color: '#f59e0b' },
+                    grid: { drawOnChartArea: false }
+                  },
+                  y2: {
+                    position: 'right',
+                    ticks: { color: '#d4af37' },
+                    grid: { drawOnChartArea: false }
+                  }
+                },
+                plugins: {
+                  legend: {
+                    labels: { color: '#e5e7eb' }
+                  }
+                }
+              }
+            });
+          }
+          
+          // Recap chart
+          const recapCanvas = document.getElementById("chart-rekap");
+          if (recapCanvas) {
+            chartRecap = new Chart(recapCanvas, {
+              type: 'line',
+              data: {
+                labels: [],
+                datasets: [
+                  { label: 'Angin', data: [], borderColor: '#10b981', fill: true },
+                  { label: 'Hujan', data: [], borderColor: '#f59e0b', fill: true },
+                  { label: 'Cahaya', data: [], borderColor: '#d4af37', fill: true }
+                ]
+              },
+              options: {
+                responsive: true,
+                scales: {
+                  x: { ticks
