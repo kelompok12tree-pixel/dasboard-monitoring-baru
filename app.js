@@ -1,9 +1,9 @@
-// Firebase SDK
+// Firebase
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
 import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-database.js";
 
-// Konfigurasi Firebase
-const firebaseConfig = {
+// Config
+const config = {
   apiKey: "AIzaSyD-eCZun9Chghk2z0rdPrEuIKkMojrM5g0",
   authDomain: "monitoring-ver-j.firebaseapp.com",
   databaseURL: "https://monitoring-ver-j-default-rtdb.asia-southeast1.firebasedatabase.app",
@@ -14,439 +14,310 @@ const firebaseConfig = {
 };
 
 // Initialize
-let app, db;
+let db;
 try {
-  app = initializeApp(firebaseConfig);
+  const app = initializeApp(config);
   db = getDatabase(app);
-  console.log("✅ Firebase initialized");
-} catch (error) {
-  console.error("❌ Firebase error:", error);
-  showError("Gagal memuat Firebase");
+  console.log("Firebase ready");
+} catch (e) {
+  console.error("Firebase failed:", e);
 }
 
-// DOM Elements
-const elements = {
-  // Tabs
-  tabRealtime: document.getElementById("tab-realtime-mobile"),
-  tabRecap: document.getElementById("tab-recap-mobile"),
-  sectionRealtime: document.getElementById("section-realtime"),
-  sectionRecap: document.getElementById("section-recap"),
-  
-  // Status
-  statusBanner: document.getElementById("status-banner"),
+// DOM
+const el = {
+  realtime: { section: document.getElementById("section-realtime"), chart: null },
+  recap: { section: document.getElementById("section-recap"), chart: null },
+  status: document.getElementById("status-banner"),
   lastUpdate: document.getElementById("last-update"),
-  liveIndicator: document.getElementById("live-indicator"),
+  live: document.getElementById("live-indicator"),
   
-  // Cards
-  cardWind: document.getElementById("card-wind"),
-  cardRain: document.getElementById("card-rain"),
-  cardLux: document.getElementById("card-lux"),
-  cardTime: document.getElementById("card-time"),
-  
-  // KPI
-  windPotential: document.getElementById("wind-potential"),
-  solarPotential: document.getElementById("solar-potential"),
-  hydroPotential: document.getElementById("hydro-potential"),
-  
-  // Progress
-  windProgress: document.getElementById("wind-progress"),
-  rainProgress: document.getElementById("rain-progress"),
-  luxProgress: document.getElementById("lux-progress"),
-  
-  // Trends
-  windTrend: document.getElementById("wind-trend"),
-  rainTrend: document.getElementById("rain-trend"),
-  luxTrend: document.getElementById("lux-trend"),
-  
-  // Rekap
-  subTabs: document.querySelectorAll(".tab-btn.sub"),
-  rekapInfo: document.getElementById("rekap-info"),
-  rekapTbody: document.getElementById("rekap-tbody"),
-  btnDownload: document.getElementById("btn-download"),
-  
-  // Loading
-  loadingOverlay: document.getElementById("loading-overlay")
+  cards: {
+    wind: document.getElementById("card-wind"),
+    rain: document.getElementById("card-rain"),
+    lux: document.getElementById("card-lux"),
+    time: document.getElementById("card-time")
+  },
+  kpi: {
+    wind: document.getElementById("wind-potential"),
+    solar: document.getElementById("solar-potential"),
+    hydro: document.getElementById("hydro-potential")
+  },
+  progress: {
+    wind: document.getElementById("wind-progress"),
+    rain: document.getElementById("rain-progress"),
+    lux: document.getElementById("lux-progress")
+  },
+  recapInfo: document.getElementById("rekap-info"),
+  recapTable: document.getElementById("rekap-table"),
+  downloadBtn: document.getElementById("download-btn")
 };
 
 // State
-let currentAgg = "minute"; // Default: Per Menit
-let realtimeChart;
-let rekapChart;
-let historiData = [];
-let previousValues = { wind: 0, rain: 0, lux: 0 };
-let isConnected = false;
+let currentAgg = "minute";
+let historyData = [];
+let realtimeData = [];
+let charts = {};
 
-// Initialize
-document.addEventListener("DOMContentLoaded", initApp);
+// Init
+document.addEventListener("DOMContentLoaded", () => {
+  setupEvents();
+  initCharts();
+  startListeners();
+  hideLoading();
+});
 
-function initApp() {
-  console.log("🚀 Initializing Energy Dashboard...");
+function setupEvents() {
+  // Tabs
+  document.getElementById("tab-realtime").onclick = () => switchTab("realtime");
+  document.getElementById("tab-recap").onclick = () => switchTab("recap");
   
-  if (!db) {
-    showError("Firebase tidak tersedia");
-    return;
-  }
-  
-  setupUI();
-  startDataListeners();
-  
-  // Hide loading after 2 seconds max
-  setTimeout(() => {
-    if (elements.loadingOverlay) {
-      elements.loadingOverlay.classList.add("hidden");
-    }
-  }, 2000);
-}
-
-// UI Setup
-function setupUI() {
-  // Tab switching
-  if (elements.tabRealtime) elements.tabRealtime.addEventListener("click", () => switchTab("realtime"));
-  if (elements.tabRecap) elements.tabRecap.addEventListener("click", () => switchTab("recap"));
-  
-  // Sub tabs - DENGAN PER MENIT
-  elements.subTabs.forEach(btn => {
-    btn.addEventListener("click", () => {
-      elements.subTabs.forEach(b => b.classList.remove("active"));
+  // Agg buttons
+  document.querySelectorAll(".agg-btn").forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll(".agg-btn").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
       currentAgg = btn.dataset.agg;
-      updateRekapView();
-    });
+      updateRecapView();
+    };
   });
   
   // Download
-  if (elements.btnDownload) {
-    elements.btnDownload.addEventListener("click", downloadCSV);
-  }
-  
-  initCharts();
+  el.downloadBtn.onclick = downloadCSV;
 }
 
-// Realtime Data Listener
-function startDataListeners() {
+function switchTab(active) {
+  document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+  document.querySelectorAll(".tab-btn").forEach(t => t.classList.remove("active"));
+  
+  if (active === "realtime") {
+    el.realtime.section.classList.add("active");
+    document.getElementById("tab-realtime").classList.add("active");
+  } else {
+    el.recap.section.classList.add("active");
+    document.getElementById("tab-recap").classList.add("active");
+  }
+  
+  if (charts.realtime && active === "realtime") charts.realtime.resize();
+  if (charts.recap && active === "recap") charts.recap.resize();
+}
+
+function initCharts() {
+  // Realtime chart
+  const realtimeCtx = document.getElementById("chart-realtime").getContext("2d");
+  charts.realtime = new Chart(realtimeCtx, {
+    type: "line",
+    data: { labels: [], datasets: [
+      { label: "Angin", data: [], borderColor: "#10b981", fill: true },
+      { label: "Hujan", data: [], borderColor: "#f59e0b", fill: true, yAxisID: "y1" },
+      { label: "Cahaya", data: [], borderColor: "#d4af37", fill: true, yAxisID: "y2" }
+    ]},
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: { grid: { color: "rgba(255,255,255,0.1)" } },
+        y: { position: "left", grid: { color: "rgba(255,255,255,0.1)" } },
+        y1: { position: "right", grid: { drawOnChartArea: false } },
+        y2: { position: "right", grid: { drawOnChartArea: false } }
+      },
+      plugins: { legend: { labels: { color: "#f1f5f9" } } }
+    }
+  });
+
+  // Recap chart
+  const recapCtx = document.getElementById("chart-rekap").getContext("2d");
+  charts.recap = new Chart(recapCtx, {
+    type: "bar",
+    data: { labels: [], datasets: [
+      { label: "Angin", data: [], backgroundColor: "#10b981" },
+      { label: "Hujan", data: [], backgroundColor: "#f59e0b" },
+      { label: "Cahaya", data: [], backgroundColor: "#d4af37" }
+    ]},
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: { 
+        x: { ticks: { color: "#f1f5f9" } },
+        y: { ticks: { color: "#f1f5f9" }, grid: { color: "rgba(255,255,255,0.1)" } }
+      },
+      plugins: { legend: { labels: { color: "#f1f5f9" } } }
+    }
+  });
+}
+
+function startListeners() {
   // Realtime
   const realtimeRef = ref(db, "/weather/keadaan_sekarang");
-  onValue(realtimeRef, (snap) => {
-    console.log("📡 Realtime data:", snap.val());
+  onValue(realtimeRef, snap => {
+    const data = snap.val();
+    if (!data) return;
     
-    const val = snap.val();
-    if (!val) return;
+    const time = data.waktu || new Date().toLocaleString();
+    const wind = parseFloat(data.anemometer) || 0;
+    const rain = parseFloat(data.rain_gauge) || 0;
+    const lux = parseFloat(data.sensor_cahaya) || 0;
     
-    const timeStr = val.waktu || new Date().toLocaleString("id-ID");
-    const wind = Number(val.anemometer || 0);
-    const rain = Number(val.rain_gauge || 0);
-    const lux = Number(val.sensor_cahaya || 0);
+    updateRealtime(wind, rain, lux, time);
+    addRealtimePoint(time, wind, rain, lux);
     
-    updateRealtimeCards(wind, rain, lux, timeStr);
-    updateKPI(wind, rain, lux);
-    pushRealtimeChart(timeStr, wind, rain, lux);
+    el.lastUpdate.textContent = time;
+    el.live.querySelector("span:last-child").textContent = "Live";
     
-    isConnected = true;
-    updateStatus(`Live - Update: ${timeStr}`, "success");
-    
-  }, (error) => {
-    console.error("❌ Realtime error:", error);
-    updateStatus(`Error koneksi: ${error.message}`, "error");
-    isConnected = false;
+  }, error => {
+    console.error("Realtime error:", error);
+    el.status.innerHTML = "⛔ Error: " + error.message;
   });
-  
+
   // History
-  const histRef = ref(db, "/weather/histori");
-  onValue(histRef, (snap) => {
-    console.log("📚 History loaded:", snap.val());
+  const historyRef = ref(db, "/weather/histori");
+  onValue(historyRef, snap => {
+    historyData = [];
+    const data = snap.val();
     
-    historiData = [];
-    const val = snap.val();
-    
-    if (val) {
-      Object.keys(val).forEach(key => {
-        const row = val[key];
-        if (row && row.waktu) {
-          const date = parseToDate(row.waktu);
-          if (date) {
-            historiData.push({
-              time: date,
-              timeStr: row.waktu,
-              wind: Number(row.anemometer || 0),
-              rain: Number(row.rain_gauge || 0),
-              lux: Number(row.sensor_cahaya || 0)
-            });
-          }
+    if (data) {
+      Object.keys(data).forEach(key => {
+        const row = data[key];
+        if (row.waktu) {
+          historyData.push({
+            time: new Date(row.waktu),
+            wind: parseFloat(row.anemometer) || 0,
+            rain: parseFloat(row.rain_gauge) || 0,
+            lux: parseFloat(row.sensor_cahaya) || 0
+          });
         }
       });
-      historiData.sort((a, b) => a.time - b.time);
     }
     
-    updateRekapView();
+    updateRecapView();
   });
 }
 
-// Update Realtime Cards
-function updateRealtimeCards(wind, rain, lux, timeStr) {
-  // Update cards
-  if (elements.cardWind) elements.cardWind.textContent = wind.toFixed(2);
-  if (elements.cardRain) elements.cardRain.textContent = rain.toFixed(2);
-  if (elements.cardLux) elements.cardLux.textContent = lux.toFixed(0);
-  if (elements.cardTime) elements.cardTime.textContent = timeStr;
+function updateRealtime(wind, rain, lux, time) {
+  // Cards
+  el.cards.wind.textContent = wind.toFixed(2);
+  el.cards.rain.textContent = rain.toFixed(2);
+  el.cards.lux.textContent = lux.toFixed(0);
+  el.cards.time.textContent = time;
   
-  // Update trends
-  updateTrend(elements.windTrend, wind, previousValues.wind);
-  updateTrend(elements.rainTrend, rain, previousValues.rain);
-  updateTrend(elements.luxTrend, lux, previousValues.lux);
+  // Progress
+  el.progress.wind.style.width = Math.min(wind / 20 * 100, 100) + "%";
+  el.progress.rain.style.width = Math.min(rain / 50 * 100, 100) + "%";
+  el.progress.lux.style.width = Math.min(lux / 2000 * 100, 100) + "%";
   
-  // Update progress
-  updateProgress(elements.windProgress, Math.min(wind / 20 * 100, 100), wind >= 15);
-  updateProgress(elements.rainProgress, Math.min(rain / 50 * 100, 100), rain >= 10);
-  updateProgress(elements.luxProgress, Math.min(lux / 2000 * 100, 100), lux >= 1000);
+  // KPI
+  el.kpi.wind.textContent = (wind * 0.15).toFixed(1) + " kWh";
+  el.kpi.solar.textContent = (lux / 1000 * 0.2).toFixed(1) + " kWh";
+  el.kpi.hydro.textContent = (rain * 0.3).toFixed(1) + " kWh";
   
-  previousValues = { wind, rain, lux };
-  
-  // Update live indicator
-  updateLiveIndicator(true);
+  el.status.innerHTML = '<span class="success">✅ Live</span> - Terakhir: ' + time;
 }
 
-// Update KPI
-function updateKPI(wind, rain, lux) {
-  const windKwh = (wind * 0.15).toFixed(1);
-  const solarKwh = (lux / 1000 * 0.2).toFixed(1);
-  const hydroKwh = (rain * 0.3).toFixed(1);
+function addRealtimePoint(time, wind, rain, lux) {
+  if (!charts.realtime) return;
   
-  if (elements.windPotential) elements.windPotential.textContent = windKwh + " kWh/hari";
-  if (elements.solarPotential) elements.solarPotential.textContent = solarKwh + " kWh/hari";
-  if (elements.hydroPotential) elements.hydroPotential.textContent = hydroKwh + " kWh/hari";
-}
-
-// Status Update
-function updateStatus(message, type = "info") {
-  if (!elements.statusBanner) return;
+  charts.realtime.data.labels.push(time);
+  charts.realtime.data.datasets[0].data.push(wind);
+  charts.realtime.data.datasets[1].data.push(rain);
+  charts.realtime.data.datasets[2].data.push(lux / 100);
   
-  const icons = {
-    success: "✅",
-    error: "❌", 
-    warning: "⚠️"
-  };
-  
-  const icon = icons[type] || "⏳";
-  elements.statusBanner.innerHTML = `<span class="status-icon">${icon}</span> ${message}`;
-  
-  const colors = {
-    success: "#10b981",
-    error: "#ef4444",
-    warning: "#f59e0b"
-  };
-  
-  elements.statusBanner.style.background = colors[type] || "#3b82f6";
-}
-
-// Live Indicator
-function updateLiveIndicator(connected) {
-  if (!elements.liveIndicator) return;
-  
-  const span = elements.liveIndicator.querySelector("span:last-child");
-  if (span) span.textContent = connected ? "Live" : "Offline";
-  
-  const indicator = elements.liveIndicator;
-  indicator.style.background = connected ? "#10b981" : "#ef4444";
-  indicator.style.color = connected ? "white" : "#ef4444";
-}
-
-// Trend Update
-function updateTrend(trendEl, current, previous) {
-  if (!trendEl || previous === 0) {
-    trendEl.textContent = "—";
-    return;
+  if (charts.realtime.data.labels.length > 24) {
+    charts.realtime.data.labels.shift();
+    charts.realtime.data.datasets.forEach(d => d.data.shift());
   }
   
-  const change = ((current - previous) / previous * 100).toFixed(1);
-  const isPositive = change >= 0;
-  
-  trendEl.className = "trend " + (isPositive ? "positive" : "negative");
-  trendEl.innerHTML = (isPositive ? "↗️" : "↘️") + " " + (isPositive ? '+' : '') + change + "%";
+  charts.realtime.update("none");
 }
 
-// Progress Bar
-function updateProgress(progressEl, percentage, isOptimal) {
-  if (!progressEl) return;
+function updateRecapView() {
+  const aggData = aggregateData(historyData, currentAgg);
   
-  progressEl.style.width = Math.min(percentage, 100) + "%";
+  el.recapInfo.textContent = `Data: ${aggData.length} titik (${currentAgg})`;
   
-  const colors = isOptimal ? "#10b981" : "#f59e0b";
-  progressEl.style.background = `linear-gradient(90deg, ${colors}, ${colors}80)`;
-}
-
-// Switch Tab
-function switchTab(tab) {
-  // Desktop (jika ada)
-  const tabRealtime = document.getElementById("tab-realtime-mobile");
-  const tabRecap = document.getElementById("tab-recap-mobile");
-  
-  if (tabRealtime) tabRealtime.classList.toggle("active", tab === "realtime");
-  if (tabRecap) tabRecap.classList.toggle("active", tab === "recap");
-  
-  // Sections
-  if (elements.sectionRealtime) elements.sectionRealtime.classList.toggle("active", tab === "realtime");
-  if (elements.sectionRecap) elements.sectionRecap.classList.toggle("active", tab === "recap");
-  
-  // Resize charts
-  if (tab === "realtime" && realtimeChart) {
-    setTimeout(() => realtimeChart.resize(), 100);
+  // Chart
+  if (charts.recap) {
+    charts.recap.data.labels = aggData.map(d => d.time.toLocaleString());
+    charts.recap.data.datasets[0].data = aggData.map(d => d.wind);
+    charts.recap.data.datasets[1].data = aggData.map(d => d.rain);
+    charts.recap.data.datasets[2].data = aggData.map(d => d.lux);
+    charts.recap.update();
   }
-  if (tab === "recap" && rekapChart) {
-    setTimeout(() => rekapChart.resize(), 100);
-  }
+  
+  // Table
+  const tbody = el.recapTable;
+  tbody.innerHTML = "";
+  
+  aggData.slice(-10).reverse().forEach(row => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${row.time.toLocaleString()}</td>
+      <td>${row.wind.toFixed(2)}</td>
+      <td>${row.rain.toFixed(2)}</td>
+      <td>${row.lux.toFixed(0)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
 }
 
-// Chart Initialization
-function initCharts() {
-  initRealtimeChart();
-  initRekapChart();
-}
-
-function initRealtimeChart() {
-  const canvas = document.getElementById("chart-realtime");
-  if (!canvas) return;
+function aggregateData(data, mode) {
+  const map = new Map();
   
-  const ctx = canvas.getContext("2d");
-  
-  realtimeChart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: [],
-      datasets: [
-        {
-          label: "Angin (km/h)",
-          data: [],
-          borderColor: "#10b981",
-          backgroundColor: "rgba(16, 185, 129, 0.1)",
-          tension: 0.4,
-          borderWidth: 3,
-          fill: true,
-          pointRadius: 4,
-          pointHoverRadius: 6
-        },
-        {
-          label: "Hujan (mm)",
-          data: [],
-          borderColor: "#f59e0b",
-          backgroundColor: "rgba(245, 158, 11, 0.1)",
-          tension: 0.4,
-          borderWidth: 3,
-          fill: true,
-          yAxisID: "y-rain"
-        },
-        {
-          label: "Cahaya (lux/100)",
-          data: [],
-          borderColor: "#d4af37",
-          backgroundColor: "rgba(212, 175, 55, 0.1)",
-          tension: 0.4,
-          borderWidth: 3,
-          fill: true,
-          yAxisID: "y-lux"
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        x: {
-          ticks: { color: "#e5e7eb", maxRotation: 45 },
-          grid: { color: "rgba(255,255,255,0.1)" }
-        },
-        y: {
-          ticks: { color: "#e5e7eb" },
-          grid: { color: "rgba(255,255,255,0.1)" }
-        },
-        "y-rain": {
-          type: "linear",
-          display: false,
-          position: "right",
-          grid: { drawOnChartArea: false },
-          ticks: { color: "#f59e0b" }
-        },
-        "y-lux": {
-          type: "linear",
-          display: false,
-          position: "right",
-          grid: { drawOnChartArea: false },
-          ticks: { color: "#d4af37" }
-        }
-      },
-      plugins: {
-        legend: {
-          labels: { 
-            color: "#e5e7eb",
-            padding: 20,
-            usePointStyle: true
-          }
-        },
-        tooltip: {
-          backgroundColor: "rgba(0, 0, 0, 0.8)",
-          titleColor: "#e5e7eb",
-          bodyColor: "#e5e7eb",
-          borderColor: "#10b981",
-          cornerRadius: 8
-        }
-      },
-      animation: {
-        duration: 800,
-        easing: "easeOutQuart"
-      }
+  data.forEach(item => {
+    let key;
+    const d = item.time;
+    
+    if (mode === "minute") {
+      key = d.toISOString().slice(0, 16);
+    } else if (mode === "hour") {
+      key = d.toISOString().slice(0, 13);
+    } else if (mode === "day") {
+      key = d.toISOString().slice(0, 10);
+    } else {
+      key = d.toISOString().slice(0, 7);
     }
+    
+    if (!map.has(key)) {
+      map.set(key, { time: new Date(key), wind: 0, rain: 0, lux: 0, count: 0 });
+    }
+    
+    const bucket = map.get(key);
+    bucket.wind += item.wind;
+    bucket.rain += item.rain;
+    bucket.lux += item.lux;
+    bucket.count++;
   });
+  
+  return Array.from(map.values()).map(b => ({
+    time: b.time,
+    wind: b.wind / b.count,
+    rain: b.rain / b.count,
+    lux: b.lux / b.count
+  })).sort((a, b) => a.time - b.time);
 }
 
-function initRekapChart() {
-  const canvas = document.getElementById("chart-rekap");
-  if (!canvas) return;
+function downloadCSV() {
+  const aggData = aggregateData(historyData, currentAgg);
+  let csv = "Waktu,Angin,Hujan,Cahaya\n";
   
-  const ctx = canvas.getContext("2d");
+  aggData.forEach(row => {
+    csv += `"${row.time.toLocaleString()}",${row.wind.toFixed(2)},${row.rain.toFixed(2)},${row.lux.toFixed(0)}\n`;
+  });
   
-  rekapChart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: [],
-      datasets: [
-        {
-          label: "Angin (km/h)",
-          data: [],
-          borderColor: "#10b981",
-          backgroundColor: "rgba(16, 185, 129, 0.1)",
-          tension: 0.4,
-          borderWidth: 3,
-          fill: true
-        },
-        {
-          label: "Hujan (mm)",
-          data: [],
-          borderColor: "#f59e0b",
-          backgroundColor: "rgba(245, 158, 11, 0.1)",
-          tension: 0.4,
-          borderWidth: 3,
-          fill: true,
-          yAxisID: "y1"
-        },
-        {
-          label: "Cahaya (lux)",
-          data: [],
-          borderColor: "#d4af37",
-          backgroundColor: "rgba(212, 175, 55, 0.1)",
-          tension: 0.4,
-          borderWidth: 3,
-          fill: true,
-          yAxisID: "y2"
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        x: {
-          ticks: { color: "#e5e7eb", maxRotation: 45 },
-          grid: { color: "rgba(255,255,255,0.1)" }
-        },
-        y: {
-          ticks: { color: "#e5e7eb" },
-          grid: { color: "rgba(255
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `data_${currentAgg}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function hideLoading() {
+  document.getElementById("loading").style.display = "none";
+}
+
+// Init
+setupEvents();
+initCharts();
+startListeners();
+
+console.log("Dashboard loaded");
