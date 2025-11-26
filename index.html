@@ -4,287 +4,182 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Monitoring Potensi Energi Terbarukan</title>
-  <style>
-    :root {
-      --bg: #0a0a0a;
-      --card: rgba(25, 25, 25, 0.95);
-      --accent: #10b981;
-      --accent-gold: #d4af37;
-      --text: #f1f5f9;
-      --text-muted: #9ca3af;
-      --border: rgba(16, 185, 129, 0.2);
-      --shadow: rgba(16, 185, 129, 0.3);
-      --gradient: linear-gradient(135deg, #10b981, #059669);
-    }
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <!-- Header -->
+  <header class="top-bar">
+    <div class="header-content">
+      <span class="header-icon">🌿</span>
+      <div>
+        <h1>Monitoring Potensi Energi Terbarukan</h1>
+        <p class="subtitle">Dashboard Analisis Data Cuaca - ESP32 → Firebase</p>
+      </div>
+    </div>
+    <div class="live-indicator" id="live-indicator">
+      <span class="live-dot"></span>
+      <span>Memuat...</span>
+    </div>
+  </header>
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+  <main class="container">
+    <!-- Navigation Tabs -->
+    <div class="nav-tabs">
+      <button id="tab-realtime" class="nav-tab active">Dashboard Live</button>
+      <button id="tab-history" class="nav-tab">Analisis Historis</button>
+    </div>
 
-    body {
-      font-family: system-ui, -apple-system, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.6;
-    }
+    <!-- Real-time Dashboard -->
+    <section id="section-realtime" class="section active">
+      <div class="status-banner" id="status-banner">
+        <span class="spinner">⏳</span>
+        Menghubungkan ke Firebase... <span id="last-update">-</span>
+      </div>
 
-    .top-bar {
-      padding: 16px 24px;
-      background: rgba(0, 0, 0, 0.5);
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
+      <!-- KPI Overview -->
+      <div class="kpi-grid">
+        <div class="kpi-card wind-kpi">
+          <span class="kpi-icon">🌪️</span>
+          <div>
+            <h3>Potensi Turbin Angin</h3>
+            <p class="kpi-value" id="wind-kpi">0 kWh/hari</p>
+          </div>
+        </div>
+        <div class="kpi-card solar-kpi">
+          <span class="kpi-icon">☀️</span>
+          <div>
+            <h3>Potensi Panel Surya</h3>
+            <p class="kpi-value" id="solar-kpi">0 kWh/hari</p>
+          </div>
+        </div>
+        <div class="kpi-card hydro-kpi">
+          <span class="kpi-icon">🌧️</span>
+          <div>
+            <h3>Potensi Hidro</h3>
+            <p class="kpi-value" id="hydro-kpi">0 kWh/hari</p>
+          </div>
+        </div>
+      </div>
 
-    .header-content {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
+      <!-- Sensor Metrics -->
+      <div class="metrics-grid">
+        <div class="metric-card wind-metric">
+          <div class="metric-header">
+            <span class="metric-icon">🌪️</span>
+            <h4>Kecepatan Angin</h4>
+          </div>
+          <div class="metric-value">
+            <span class="value primary" id="wind-value">-</span>
+            <span class="unit">km/h</span>
+          </div>
+          <div class="trend" id="wind-trend">-</div>
+        </div>
 
-    .header-icon {
-      font-size: 24px;
-    }
+        <div class="metric-card rain-metric">
+          <div class="metric-header">
+            <span class="metric-icon">🌧️</span>
+            <h4>Curah Hujan</h4>
+          </div>
+          <div class="metric-value">
+            <span class="value primary" id="rain-value">-</span>
+            <span class="unit">mm</span>
+          </div>
+          <div class="trend" id="rain-trend">-</div>
+        </div>
 
-    .header-title {
-      font-size: 20px;
-      font-weight: 600;
-    }
+        <div class="metric-card light-metric">
+          <div class="metric-header">
+            <span class="metric-icon">☀️</span>
+            <h4>Intensitas Cahaya</h4>
+          </div>
+          <div class="metric-value">
+            <span class="value primary" id="light-value">-</span>
+            <span class="unit">lux</span>
+          </div>
+          <div class="trend" id="light-trend">-</div>
+        </div>
 
-    .subtitle {
-      font-size: 12px;
-      color: var(--text-muted);
-    }
+        <div class="metric-card time-metric">
+          <div class="metric-header">
+            <span class="metric-icon">🕐</span>
+            <h4>Timestamp</h4>
+          </div>
+          <div class="metric-value">
+            <span id="timestamp-value">-</span>
+          </div>
+        </div>
+      </div>
 
-    .status-indicator {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 12px;
-      background: var(--gradient);
-      border-radius: 20px;
-      color: white;
-      font-size: 12px;
-    }
+      <!-- Real-time Chart -->
+      <div class="chart-container">
+        <h3 class="chart-title">Tren Data Real-time (24 Jam Terakhir)</h3>
+        <div class="chart-wrapper">
+          nvas id="chart-reealtime"></canvas>
+        </div>
+      </div>
+    </section>
 
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      background: white;
-      border-radius: 50%;
-      animation: blink 1.5s infinite;
-    }
+    <!-- History Section -->
+    <section id="section-history" class="section">
+      <div class="history-controls">
+        <div class="date-selector">
+          <input type="date" id="date-start" value="">
+          <span class="date-separator">→</span>
+          <input type="date" id="date-end" value="">
+          <button id="filter-date" class="btn-filter">Filter</button>
+        </div>
+        <div class="agg-selector">
+          <button class="agg-btn active" data-agg="minute">Per Menit</button>
+          <button class="agg-btn" data-agg="hour">Per Jam</button>
+          <button class="agg-btn" data-agg="day">Per Hari</button>
+          <button class="agg-btn" data-agg="month">Per Bulan</button>
+        </div>
+      </div>
 
-    @keyframes blink {
-      0%, 50% { opacity: 1; }
-      51%, 100% { opacity: 0.3; }
-    }
+      <div class="history-toolbar">
+        <span class="info-text" id="history-info">Memuat data...</span>
+        <div class="export-buttons">
+          <button id="btn-csv" class="export-btn">📄 CSV</button>
+          <button id="btn-pdf" class="export-btn">📊 PDF</button>
+          <button id="btn-screenshot" class="export-btn">📸 Screenshot</button>
+        </div>
+      </div>
 
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 20px;
-    }
+      <!-- History Chart -->
+      <div class="chart-container">
+        <h3 class="chart-title">Analisis Historis</h3>
+        <div class="chart-wrapper">
+          nvas id="chart-historyy"></canvas>
+        </div>
+      </div>
 
-    .tabs {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 20px;
-      justify-content: center;
-    }
+      <!-- History Table -->
+      <div class="history-table">
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Waktu</th>
+                <th>Angin (km/h)</th>
+                <th>Hujan (mm)</th>
+                <th>Cahaya (lux)</th>
+                <th>Potensi (kWh)</th>
+              </tr>
+            </thead>
+            <tbody id="history-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
 
-    .tab-btn {
-      padding: 12px 20px;
-      border: 1px solid var(--border);
-      background: transparent;
-      color: var(--text-muted);
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.3s;
-    }
-
-    .tab-btn.active {
-      background: var(--accent);
-      color: white;
-    }
-
-    .section {
-      display: none;
-    }
-
-    .section.active {
-      display: block;
-    }
-
-    .status-banner {
-      padding: 12px 16px;
-      background: rgba(16, 185, 129, 0.1);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      margin-bottom: 20px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-
-    .kpi-card {
-      background: var(--card);
-      padding: 20px;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      display: flex;
-      gap: 12px;
-      align-items: center;
-    }
-
-    .kpi-icon {
-      font-size: 24px;
-    }
-
-    .kpi-card h3 {
-      font-size: 13px;
-      color: var(--text-muted);
-      margin-bottom: 4px;
-    }
-
-    .kpi-value {
-      font-size: 24px;
-      font-weight: 600;
-      color: var(--text);
-    }
-
-    .sensor-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-
-    .sensor-card {
-      background: var(--card);
-      padding: 20px;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      text-align: center;
-    }
-
-    .sensor-card h4 {
-      font-size: 14px;
-      color: var(--text-muted);
-      margin-bottom: 8px;
-    }
-
-    .sensor-value {
-      font-size: 28px;
-      font-weight: 600;
-      color: var(--text);
-      margin: 8px 0;
-    }
-
-    .progress-container {
-      margin: 12px 0;
-    }
-
-    .progress-bar {
-      height: 6px;
-      background: var(--border);
-      border-radius: 3px;
-      overflow: hidden;
-    }
-
-    .progress-fill {
-      height: 100%;
-      background: var(--accent);
-      border-radius: 3px;
-      transition: width 0.5s;
-      width: 0%;
-    }
-
-    .chart-container {
-      background: var(--card);
-      padding: 20px;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      margin-bottom: 20px;
-    }
-
-    .chart-wrapper {
-      height: 350px;
-    }
-
-    .agg-controls {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 20px;
-      justify-content: center;
-    }
-
-    .agg-btn {
-      padding: 8px 16px;
-      border: 1px solid var(--border);
-      background: transparent;
-      color: var(--text-muted);
-      border-radius: 6px;
-      cursor: pointer;
-      transition: all 0.3s;
-    }
-
-    .agg-btn.active {
-      background: var(--accent);
-      color: white;
-    }
-
-    .toolbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 16px;
-      background: var(--card);
-      border-radius: 8px;
-      margin-bottom: 20px;
-      border: 1px solid var(--border);
-    }
-
-    .download-btn {
-      padding: 8px 16px;
-      background: var(--accent);
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-
-    .table-container {
-      background: var(--card);
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      overflow: auto;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    th, td {
-      padding: 12px;
-      text-align: left;
-      border-bottom: 1px solid var(--border);
-      color: var(--text);
-    }
-
-    th {
-      font-weight
+  <!-- Loading Overlay -->
+  <div id="loading-overlay" class="loading-overlay">
+    <div class="loading-content">
+      <div class="loading-spinner">⏳</div>
+      <p class="loading-text">Menginisialisasi Dashboard...</p>
+    </div>
+  </div>
+</body>
+</html>
