@@ -1,193 +1,540 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <title>Monitoring Potensi Energi Terbarukan</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Monitoring Energi Terbarukan</title>
+  <style>
+    :root {
+      --bg: #0f0f0f;
+      --card: #1a1a1a;
+      --accent: #10b981;
+      --text: #f1f5f9;
+      --text-muted: #9ca3af;
+      --border: rgba(16, 185, 129, 0.2);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .header {
+      padding: 16px 24px;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+    }
+
+    .header h1 {
+      font-size: 20px;
+    }
+
+    .subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .status {
+      padding: 12px 16px;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status.success {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--accent);
+    }
+
+    .status.error {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .card {
+      background: var(--card);
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .card h4 {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .card .value {
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--text);
+      margin: 8px 0;
+    }
+
+    .progress {
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+      margin: 8px 0;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 3px;
+      transition: width 0.5s;
+      width: 0%;
+    }
+
+    .chart-container {
+      background: var(--card);
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+
+    .chart-wrapper {
+      height: 350px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      justify-content: center;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .btn.active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+
+    .table-container {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    th {
+      font-weight: 600;
+      background: var(--bg);
+    }
+
+    .loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .loading.hidden {
+      display: none;
+    }
+
+    @media (max-width: 768px) {
+      .cards {
+        grid-template-columns: 1fr;
+      }
+      
+      .chart-wrapper {
+        height: 280px;
+      }
+    }
+  </style>
 </head>
 <body>
-  <header class="top-bar">
-    <div class="header-content">
-      <span class="header-icon">🌿</span>
-      <div>
-        <h1>Monitoring Potensi Energi Terbarukan</h1>
-        <p class="subtitle">Data Cuaca Real-time dari ESP32</p>
+  <div class="header">
+    <div>
+      <h1>Monitoring Energi Terbarukan</h1>
+      <p class="subtitle">Data Cuaca Real-time</p>
+    </div>
+    <div class="status" id="status">Memuat...</div>
+  </div>
+
+  <div class="container">
+    <div class="cards">
+      <div class="card">
+        <h4>🌪️ Angin</h4>
+        <p class="value" id="wind">-</p>
+        <div class="progress">
+          <div class="progress-bar" id="wind-progress"></div>
+        </div>
+      </div>
+      <div class="card">
+        <h4>🌧️ Hujan</h4>
+        <p class="value" id="rain">-</p>
+        <div class="progress">
+          <div class="progress-bar" id="rain-progress"></div>
+        </div>
+      </div>
+      <div class="card">
+        <h4>☀️ Cahaya</h4>
+        <p class="value" id="lux">-</p>
+        <div class="progress">
+          <div class="progress-bar" id="lux-progress"></div>
+        </div>
+      </div>
+      <div class="card">
+        <h4>🕐 Waktu</h4>
+        <p class="value" id="time">-</p>
       </div>
     </div>
-    <div class="live-indicator" id="live-indicator">
-      <span class="live-dot"></span>
-      <span>Memuat...</span>
-    </div>
-  </header>
 
-  <main class="container">
-    <!-- Mobile Tab -->
-    <div class="mobile-tab-group">
-      <button id="tab-realtime-mobile" class="tab-btn active">Realtime</button>
-      <button id="tab-recap-mobile" class="tab-btn">Rekap</button>
+    <div class="controls">
+      <button class="btn active" data-mode="realtime">Realtime</button>
+      <button class="btn" data-mode="minute">Per Menit</button>
+      <button class="btn" data-mode="hour">Per Jam</button>
     </div>
 
-    <!-- Content -->
-    <div class="content-wrapper">
-      <!-- REALTIME -->
-      <section id="section-realtime" class="section active">
-        <div class="status-banner" id="status-banner">
-          <span class="spinner">⏳</span>
-          Menghubungkan ke Firebase... <span id="last-update">-</span>
-        </div>
-
-        <!-- KPI Overview -->
-        <div class="kpi-grid">
-          <div class="kpi-card">
-            <span class="kpi-icon">🌪️</span>
-            <div>
-              <h3>Potensi Turbin Angin</h3>
-              <p class="kpi-value" id="wind-potential">0 kWh/hari</p>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <span class="kpi-icon">☀️</span>
-            <div>
-              <h3>Potensi Panel Surya</h3>
-              <p class="kpi-value" id="solar-potential">0 kWh/hari</p>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <span class="kpi-icon">🌧️</span>
-            <div>
-              <h3>Potensi Hidro</h3>
-              <p class="kpi-value" id="hydro-potential">0 kWh/hari</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Sensor Cards -->
-        <div class="cards-grid">
-          <div class="sensor-card wind-card" data-type="angin">
-            <div class="card-header">
-              <span class="card-icon">🌪️</span>
-              <h3>Kecepatan Angin</h3>
-            </div>
-            <div class="card-content">
-              <p class="value" id="card-wind">-</p>
-              <span class="unit">km/h</span>
-              <div class="trend-indicator" id="wind-trend">—</div>
-            </div>
-            <div class="card-footer">
-              <div class="progress-bar">
-                <div class="progress-fill" id="wind-progress"></div>
-              </div>
-              <small>Optimal: >15 km/h</small>
-            </div>
-          </div>
-
-          <div class="sensor-card rain-card" data-type="hujan">
-            <div class="card-header">
-              <span class="card-icon">🌧️</span>
-              <h3>Curah Hujan</h3>
-            </div>
-            <div class="card-content">
-              <p class="value" id="card-rain">-</p>
-              <span class="unit">mm</span>
-              <div class="trend-indicator" id="rain-trend">—</div>
-            </div>
-            <div class="card-footer">
-              <div class="progress-bar">
-                <div class="progress-fill" id="rain-progress"></div>
-              </div>
-              <small>Potensi: >10 mm</small>
-            </div>
-          </div>
-
-          <div class="sensor-card light-card" data-type="cahaya">
-            <div class="card-header">
-              <span class="card-icon">☀️</span>
-              <h3>Intensitas Cahaya</h3>
-            </div>
-            <div class="card-content">
-              <p class="value" id="card-lux">-</p>
-              <span class="unit">lux</span>
-              <div class="trend-indicator" id="lux-trend">—</div>
-            </div>
-            <div class="card-footer">
-              <div class="progress-bar">
-                <div class="progress-fill" id="lux-progress"></div>
-              </div>
-              <small>Optimal: >1000 lux</small>
-            </div>
-          </div>
-
-          <div class="sensor-card time-card">
-            <div class="card-header">
-              <span class="card-icon">🕐</span>
-              <h3>Update Terakhir</h3>
-            </div>
-            <div class="card-content">
-              <p class="value" id="card-time">-</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Realtime Chart -->
-        <div class="chart-section">
-          <h2 class="section-title">Tren 24 Jam Terakhir</h2>
-          <div class="chart-wrapper">
-            anvas id="chart-realtime"></canvas>
-          </div>
-        </div>
-      </section>
-
-      <!-- REKAP -->
-      <section id="section-recap" class="section">
-        <div class="rekap-header">
-          <h2 class="section-title">Rekap Data Historis</h2>
-          <div class="rekap-controls">
-            <button class="tab-btn sub active" data-agg="minute">Per Menit</button>
-            <button class="tab-btn sub" data-agg="hour">Per Jam</button>
-            <button class="tab-btn sub" data-agg="day">Per Hari</button>
-            <button class="tab-btn sub" data-agg="month">Per Bulan</button>
-          </div>
-        </div>
-
-        <div class="toolbar">
-          <span id="rekap-info">Memuat data...</span>
-          <button id="btn-download" class="btn-download">📥 Download CSV</button>
-        </div>
-
-        <!-- Rekap Chart -->
-        <div class="chart-section">
-          <div class="chart-wrapper">
-            anvas id="chart-rekap"></canvas>
-          </div>
-        </div>
-
-        <!-- Rekap Table -->
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Waktu</th>
-                <th>Angin (km/h)</th>
-                <th>Hujan (mm)</th>
-                <th>Cahaya (lux)</th>
-                <th>Potensi (kWh)</th>
-              </tr>
-            </thead>
-            <tbody id="rekap-tbody"></tbody>
-          </table>
-        </div>
-      </section>
+    <div class="chart-container">
+      anvas id="chart"></canvas>
     </div>
-  </main>
 
-  <!-- Loading Overlay -->
-  <div id="loading-overlay" class="loading-overlay">
-    <div class="loading-content">
-      <span class="spinner">⏳</span>
-      <p>Menginisialisasi Dashboard...</p>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Waktu</th>
+            <th>Angin</th>
+            <th>Hujan</th>
+            <th>Cahaya</th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
     </div>
   </div>
+
+  <div class="loading" id="loading">
+    <div>Memuat Dashboard...</div>
+  </div>
+
+  <!-- Firebase SDK - Inline -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-database-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <script>
+    // Config Firebase
+    const config = {
+      apiKey: "AIzaSyD-eCZun9Chghk2z0rdPrEuIKkMojrM5g0",
+      authDomain: "monitoring-ver-j.firebaseapp.com",
+      databaseURL: "https://monitoring-ver-j-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "monitoring-ver-j"
+    };
+
+    // Initialize
+    let db;
+    try {
+      firebase.initializeApp(config);
+      db = firebase.database();
+      console.log("✅ Firebase connected");
+      document.getElementById("loading").style.display = "none";
+    } catch (error) {
+      console.error("❌ Firebase error:", error);
+      document.getElementById("status").textContent = "❌ Firebase gagal: " + error.message;
+      document.getElementById("loading").style.display = "none";
+    }
+
+    // DOM Elements
+    const el = {
+      status: document.getElementById("status"),
+      wind: document.getElementById("wind"),
+      rain: document.getElementById("rain"),
+      lux: document.getElementById("lux"),
+      time: document.getElementById("time"),
+      table: document.getElementById("table-body"),
+      buttons: document.querySelectorAll(".btn"),
+      chart: null
+    };
+
+    let currentMode = "realtime";
+    let historyData = [];
+    let isConnected = false;
+
+    // UI Events
+    el.buttons.forEach(btn => {
+      btn.addEventListener("click", () => {
+        el.buttons.forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        currentMode = btn.dataset.mode;
+        updateView();
+      });
+    });
+
+    // Data Listeners
+    if (db) {
+      // Realtime
+      const realtimeRef = db.ref("/weather/keadaan_sekarang");
+      realtimeRef.on("value", (snap) => {
+        const data = snap.val();
+        console.log("📡 Data:", data);
+        
+        if (data) {
+          const wind = parseFloat(data.anemometer) || 0;
+          const rain = parseFloat(data.rain_gauge) || 0;
+          const lux = parseFloat(data.sensor_cahaya) || 0;
+          const time = data.waktu || new Date().toLocaleString();
+          
+          // Update cards
+          el.wind.textContent = wind.toFixed(2);
+          el.rain.textContent = rain.toFixed(2);
+          el.lux.textContent = lux.toFixed(0);
+          el.time.textContent = time;
+          
+          // Update progress
+          document.getElementById("wind-progress").style.width = Math.min(wind / 20 * 100, 100) + "%";
+          document.getElementById("rain-progress").style.width = Math.min(rain / 50 * 100, 100) + "%";
+          document.getElementById("lux-progress").style.width = Math.min(lux / 2000 * 100, 100) + "%";
+          
+          // Update chart
+          if (el.chart) {
+            el.chart.data.labels.push(time);
+            el.chart.data.datasets[0].data.push(wind);
+            el.chart.data.datasets[1].data.push(rain);
+            el.chart.data.datasets[2].data.push(lux / 100);
+            
+            if (el.chart.data.labels.length > 24) {
+              el.chart.data.labels.shift();
+              el.chart.data.datasets.forEach(d => d.data.shift());
+            }
+            
+            el.chart.update();
+          }
+          
+          isConnected = true;
+          el.status.textContent = "✅ Live - " + time;
+          el.status.className = "status success";
+        }
+      }, (error) => {
+        console.error("Realtime error:", error);
+        el.status.textContent = "❌ Error: " + error.message;
+        el.status.className = "status error";
+      });
+
+      // History
+      const historyRef = db.ref("/weather/histori");
+      historyRef.on("value", (snap) => {
+        historyData = [];
+        const data = snap.val();
+        
+        if (data) {
+          Object.keys(data).forEach(key => {
+            const row = data[key];
+            if (row.waktu) {
+              historyData.push({
+                time: row.waktu,
+                wind: parseFloat(row.anemometer) || 0,
+                rain: parseFloat(row.rain_gauge) || 0,
+                lux: parseFloat(row.sensor_cahaya) || 0
+              });
+            }
+          });
+        }
+        
+        updateView();
+      });
+    }
+
+    // Chart
+    function initChart() {
+      const ctx = document.getElementById("chart").getContext("2d");
+      
+      el.chart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: [],
+          datasets: [
+            {
+              label: "Angin (km/h)",
+              data: [],
+              borderColor: "#10b981",
+              backgroundColor: "rgba(16, 185, 129, 0.1)",
+              tension: 0.4,
+              borderWidth: 2,
+              fill: true
+            },
+            {
+              label: "Hujan (mm)",
+              data: [],
+              borderColor: "#f59e0b",
+              backgroundColor: "rgba(245, 158, 11, 0.1)",
+              tension: 0.4,
+              borderWidth: 2,
+              fill: true,
+              yAxisID: "y1"
+            },
+            {
+              label: "Cahaya (lux/100)",
+              data: [],
+              borderColor: "#d4af37",
+              backgroundColor: "rgba(212, 175, 55, 0.1)",
+              tension: 0.4,
+              borderWidth: 2,
+              fill: true,
+              yAxisID: "y2"
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            x: {
+              ticks: { color: "#f1f5f9" },
+              grid: { color: "rgba(255,255,255,0.1)" }
+            },
+            y: {
+              ticks: { color: "#f1f5f9" },
+              grid: { color: "rgba(255,255,255,0.1)" }
+            },
+            y1: {
+              position: "right",
+              ticks: { color: "#f59e0b" },
+              grid: { drawOnChartArea: false }
+            },
+            y2: {
+              position: "right",
+              ticks: { color: "#d4af37" },
+              grid: { drawOnChartArea: false }
+            }
+          },
+          plugins: {
+            legend: {
+              labels: { color: "#f1f5f9" }
+            }
+          }
+        }
+      });
+    }
+
+    // Update View
+    function updateView() {
+      if (currentMode === "realtime") {
+        // Update table with latest data
+        updateTable(historyData.slice(-10));
+      } else {
+        // Aggregate by time period
+        const data = aggregateData(historyData, currentMode);
+        updateTable(data);
+      }
+    }
+
+    function aggregateData(data, mode) {
+      const map = new Map();
+      
+      data.forEach(item => {
+        let key;
+        const d = new Date(item.time);
+        
+        if (mode === "minute") {
+          key = d.toISOString().slice(0, 16);
+        } else if (mode === "hour") {
+          key = d.toISOString().slice(0, 13);
+        } else if (mode === "day") {
+          key = d.toISOString().slice(0, 10);
+        }
+        
+        if (!map.has(key)) {
+          map.set(key, { 
+            time: key, 
+            wind: 0, 
+            rain: 0, 
+            lux: 0, 
+            count: 0 
+          });
+        }
+        
+        const bucket = map.get(key);
+        bucket.wind += item.wind;
+        bucket.rain += item.rain;
+        bucket.lux += item.lux;
+        bucket.count++;
+      });
+      
+      return Array.from(map.values()).map(b => ({
+        time: b.time,
+        wind: b.wind / b.count,
+        rain: b.rain / b.count,
+        lux: b.lux / b.count
+      })).sort((a, b) => new Date(a.time) - new Date(b.time));
+    }
+
+    function updateTable(data) {
+      const tbody = document.getElementById("table-body");
+      tbody.innerHTML = "";
+      
+      data.slice(-10).reverse().forEach(row => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${row.time}</td>
+          <td>${row.wind.toFixed(2)}</td>
+          <td>${row.rain.toFixed(2)}</td>
+          <td>${row.lux.toFixed(0)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Initialize
+    initChart();
+    console.log("✅ Dashboard ready");
+  </script>
 </body>
 </html>
